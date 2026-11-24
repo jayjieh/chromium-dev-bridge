@@ -132,7 +132,8 @@ final class CdpEventTranslator {
         List<StackFrame> out = new ArrayList<>();
         for (JsonNode f : stackTrace.path("callFrames")) {
             String url = f.path("url").asText("");
-            if (url.isEmpty()) continue;
+            // Skip frames injected by other browser extensions (e.g. DevTools hooks wrapping console.error).
+            if (url.isEmpty() || url.startsWith("chrome-extension://")) continue;
             String fn = f.path("functionName").asText("");
             out.add(new StackFrame(fn.isEmpty() ? null : fn,
                     SourceLocation.ofUrl(url, f.path("lineNumber").asInt() + 1, f.path("columnNumber").asInt() + 1), null));

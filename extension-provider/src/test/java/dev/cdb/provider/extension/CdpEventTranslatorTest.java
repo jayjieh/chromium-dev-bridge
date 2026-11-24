@@ -37,7 +37,8 @@ class CdpEventTranslatorTest {
         t.handle("Runtime.consoleAPICalled", j("""
                 {"type":"error","args":[{"type":"string","value":"Failed:"},{"type":"number","value":500},
                  {"type":"object","description":"Object"}],
-                 "stackTrace":{"callFrames":[{"functionName":"load","url":"http://localhost:3000/app.js","lineNumber":9,"columnNumber":4}]}}
+                 "stackTrace":{"callFrames":[{"functionName":"overrideMethod","url":"chrome-extension://fmkadmapgofadopljbjfkapdkoienihi/build/installHook.js","lineNumber":0,"columnNumber":100},
+                   {"functionName":"load","url":"http://localhost:3000/app.js","lineNumber":9,"columnNumber":4}]}}
                 """), false);
         t.handle("Runtime.exceptionThrown", j("""
                 {"exceptionDetails":{"text":"Uncaught","exception":{"description":"TypeError: x is undefined\\n    at render (http://localhost:3000/app.js:29:18)"}}}
