@@ -25,9 +25,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Install Playwright system dependencies (Linux)
+      # Full Chromium (not only the headless shell): the Chrome extension end-to-end test loads an unpacked
+      # extension, which needs it. Same Playwright version as the Java dependency, so the same browser revision.
+      - name: Install Playwright Chromium (Linux, with system dependencies)
         if: runner.os == 'Linux'
-        run: npx -y playwright@1.65.1 install-deps chromium
+        run: npx -y playwright@1.65.1 install --with-deps chromium
+      - name: Install Playwright Chromium
+        if: runner.os != 'Linux'
+        run: npx -y playwright@1.65.1 install chromium
       - name: Build and test
         run: mvn -B verify
       - name: Upload test reports
