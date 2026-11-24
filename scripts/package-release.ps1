@@ -23,8 +23,9 @@ if (-not $SkipBuild) {
         Pop-Location
     } finally { Pop-Location }
 }
-$pluginZip = Get-ChildItem (Join-Path $root "intellij-plugin\build\distributions") -Filter "*.zip" | Select-Object -First 1
-if (-not $pluginZip) { throw "Plugin zip not found; build the plugin first" }
+# Pick the plugin zip for this version: build/distributions keeps zips from earlier versions.
+$pluginZip = Get-Item (Join-Path $root "intellij-plugin\build\distributions\chromium-dev-bridge-intellij-$version.zip") -ErrorAction SilentlyContinue
+if (-not $pluginZip) { throw "Plugin zip for $version not found; check pluginVersion in intellij-plugin/gradle.properties and build the plugin" }
 $fullDriver = Join-Path $root "browser-driver\target\cdb-driver-exec.jar"
 New-Item -ItemType Directory -Force $dist | Out-Null
 

@@ -55,7 +55,7 @@ Data directory: `~/.chromium-dev-bridge` (`driver.json`, `audit/`, `screenshots/
 ```bash
 cd intellij-plugin && ./gradlew buildPlugin
 ```
-Install `intellij-plugin/build/distributions/chromium-dev-bridge-intellij-0.1.0.zip` via *Settings | Plugins | ⚙ |
+Install `intellij-plugin/build/distributions/chromium-dev-bridge-intellij-0.1.1.zip` via *Settings | Plugins | ⚙ |
 Install Plugin from Disk*. Then set *Settings | Tools | Chromium Developer Bridge | Driver jar* to
 `browser-driver/target/cdb-driver-exec.jar` so the IDE can start the driver for you.
 

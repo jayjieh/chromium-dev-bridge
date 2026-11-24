@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Chromium Developer Bridge — Browser Driver API
-  version: 0.1.0
+  version: 0.1.1
   description: |
     Local API of the Chromium Developer Bridge browser driver.
 

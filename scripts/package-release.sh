@@ -24,7 +24,9 @@ if [[ "$SKIP_BUILD" == false ]]; then
   (cd "$ROOT" && mvn -q -B install -DskipTests)
   (cd "$ROOT/intellij-plugin" && ./gradlew buildPlugin --console=plain -q)
 fi
-PLUGIN_ZIP="$(ls "$ROOT"/intellij-plugin/build/distributions/*.zip | head -1)"
+# Pick the plugin zip for this version: build/distributions keeps zips from earlier versions.
+PLUGIN_ZIP="$ROOT/intellij-plugin/build/distributions/chromium-dev-bridge-intellij-$VERSION.zip"
+[[ -f "$PLUGIN_ZIP" ]] || { echo "Plugin zip for $VERSION not found; check pluginVersion in intellij-plugin/gradle.properties" >&2; exit 1; }
 FULL_DRIVER="$ROOT/browser-driver/target/cdb-driver-exec.jar"
 mkdir -p "$DIST"
 

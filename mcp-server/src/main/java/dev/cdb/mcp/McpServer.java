@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit;
 public class McpServer {
     public static final List<String> SUPPORTED_VERSIONS = List.of("2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05");
     static final String SERVER_NAME = "chromium-dev-bridge";
-    static final String SERVER_VERSION = "0.1.0";
+    static final String SERVER_VERSION = "0.1.1";
     static final String INSTRUCTIONS = """
             Chromium Developer Bridge gives you a controlled Chromium browser for the user's local web application.
             Typical loop: browser_create_session -> browser_navigate (http://localhost:...) -> browser_snapshot (interactive) ->

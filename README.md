@@ -19,12 +19,12 @@ IntelliJ plugin, the Chrome extension and setup scripts.
 
 | Your computer | Download |
 |---|---|
-| Windows | [chromium-dev-bridge-0.1.0-windows-x64.zip](https://github.com/jayjieh/chromium-dev-bridge/releases/download/v0.1.0/chromium-dev-bridge-0.1.0-windows-x64.zip) (70 MB) |
-| Mac, Apple silicon (M1–M4) | [chromium-dev-bridge-0.1.0-macos-arm64.zip](https://github.com/jayjieh/chromium-dev-bridge/releases/download/v0.1.0/chromium-dev-bridge-0.1.0-macos-arm64.zip) (75 MB) |
-| Mac, Intel | [chromium-dev-bridge-0.1.0-macos-x64.zip](https://github.com/jayjieh/chromium-dev-bridge/releases/download/v0.1.0/chromium-dev-bridge-0.1.0-macos-x64.zip) (77 MB) |
-| Linux x64 | [chromium-dev-bridge-0.1.0-linux-x64.zip](https://github.com/jayjieh/chromium-dev-bridge/releases/download/v0.1.0/chromium-dev-bridge-0.1.0-linux-x64.zip) (80 MB) |
-| Linux ARM64 | [chromium-dev-bridge-0.1.0-linux-arm64.zip](https://github.com/jayjieh/chromium-dev-bridge/releases/download/v0.1.0/chromium-dev-bridge-0.1.0-linux-arm64.zip) (80 MB) |
-| Any OS, one file | [chromium-dev-bridge-0.1.0-all-platforms.zip](https://github.com/jayjieh/chromium-dev-bridge/releases/download/v0.1.0/chromium-dev-bridge-0.1.0-all-platforms.zip) (249 MB) |
+| Windows | [chromium-dev-bridge-0.1.1-windows-x64.zip](https://github.com/jayjieh/chromium-dev-bridge/releases/download/v0.1.1/chromium-dev-bridge-0.1.1-windows-x64.zip) (70 MB) |
+| Mac, Apple silicon (M1–M4) | [chromium-dev-bridge-0.1.1-macos-arm64.zip](https://github.com/jayjieh/chromium-dev-bridge/releases/download/v0.1.1/chromium-dev-bridge-0.1.1-macos-arm64.zip) (75 MB) |
+| Mac, Intel | [chromium-dev-bridge-0.1.1-macos-x64.zip](https://github.com/jayjieh/chromium-dev-bridge/releases/download/v0.1.1/chromium-dev-bridge-0.1.1-macos-x64.zip) (77 MB) |
+| Linux x64 | [chromium-dev-bridge-0.1.1-linux-x64.zip](https://github.com/jayjieh/chromium-dev-bridge/releases/download/v0.1.1/chromium-dev-bridge-0.1.1-linux-x64.zip) (80 MB) |
+| Linux ARM64 | [chromium-dev-bridge-0.1.1-linux-arm64.zip](https://github.com/jayjieh/chromium-dev-bridge/releases/download/v0.1.1/chromium-dev-bridge-0.1.1-linux-arm64.zip) (80 MB) |
+| Any OS, one file | [chromium-dev-bridge-0.1.1-all-platforms.zip](https://github.com/jayjieh/chromium-dev-bridge/releases/download/v0.1.1/chromium-dev-bridge-0.1.1-all-platforms.zip) (249 MB) |
 
 Unzip it somewhere permanent (e.g. `C:\Tools\chromium-dev-bridge` or `~/tools/chromium-dev-bridge`), then run setup
 once from that folder. On Windows, right-click the zip > **Properties** > **Unblock** before unzipping.
@@ -84,11 +84,11 @@ Try it in Agent mode:
 ### 3. Install the IntelliJ plugin
 
 The plugin is in the bundle's `intellij/` folder, or download it on its own:
-[chromium-dev-bridge-intellij-0.1.0.zip](https://github.com/jayjieh/chromium-dev-bridge/releases/download/v0.1.0/chromium-dev-bridge-intellij-0.1.0.zip).
+[chromium-dev-bridge-intellij-0.1.1.zip](https://github.com/jayjieh/chromium-dev-bridge/releases/download/v0.1.1/chromium-dev-bridge-intellij-0.1.1.zip).
 It talks to the driver from the bundle, so set up the bundle first.
 
 1. **Settings** > **Plugins** > ⚙ (gear) > **Install Plugin from Disk…**
-2. Choose `chromium-dev-bridge-intellij-0.1.0.zip` (don't unzip it) and restart the IDE when asked.
+2. Choose `chromium-dev-bridge-intellij-0.1.1.zip` (don't unzip it) and restart the IDE when asked.
 3. Open the **Chromium Bridge** tool window on the right edge. It connects to the driver, or starts it from the
    location setup recorded; the footer shows **● Connected**.
 
@@ -102,7 +102,7 @@ The extension lets the bridge use tabs from your everyday Chrome, one tab at a t
 **Share this tab**. It isn't in the Chrome Web Store yet; you load it from a folder.
 
 1. Use the bundle's `chrome-extension` folder, or download
-   [chromium-dev-bridge-extension-0.1.0.zip](https://github.com/jayjieh/chromium-dev-bridge/releases/download/v0.1.0/chromium-dev-bridge-extension-0.1.0.zip)
+   [chromium-dev-bridge-extension-0.1.1.zip](https://github.com/jayjieh/chromium-dev-bridge/releases/download/v0.1.1/chromium-dev-bridge-extension-0.1.1.zip)
    and unzip it into a folder you'll keep (Chrome loads the extension from that folder).
 2. Open `chrome://extensions`, turn on **Developer mode** (top right), click **Load unpacked**, and select that folder.
 3. Pin it: puzzle icon in the toolbar > pin **Chromium Developer Bridge**.

@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1")
 public class SystemController {
-    static final String VERSION = "0.1.0";
+    static final String VERSION = "0.1.1";
     private final SessionManager sessions;
     private final dev.cdb.provider.extension.ExtensionHub extensions;
     private volatile List<String> discovered;

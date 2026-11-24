@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Chromium Developer Bridge",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Share tabs from your Chrome with the Chromium Developer Bridge (IntelliJ IDEA and AI coding agents).",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA4JxMbT8nxFP3EDk1QQRjILOwUO88EXc1haeAcn155+DvFSxrkjiHaH7zDNZEY+n5/wJDIaxQe+AaBwkxg6MB7GJ0FHCUonU6KUaQH2AyjPkrWRoOYeVMYqGwob5k7Z/44t9JSXR8uh2HL5Mz2zB8cl27+4XjcR6T+SZtuyA2g3E7cER0Hx3zUHYl4JZ9Gaez+vW3+RKSYkeGeJb1yRE16qvkNvU23bf7Afe4vWnAtXw/zwoJmaqwTFKyYmGsF1+M0ciqAt/0oC6X2bry9Np9tLI82arNmWm/bqtedmh7SnOG7szYCULgsaM0Ls+0ObCUSKaiypTQnxjP/pwsiqCGEQIDAQAB",
   "minimum_chrome_version": "116",
