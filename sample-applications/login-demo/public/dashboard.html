@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard</title>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<header>
+  <strong>Demo App</strong>
+  <button id="menu-toggle" aria-label="Open menu">☰</button>
+  <nav aria-label="Main"><a href="/dashboard">Dashboard</a><a href="/register">Register</a><a href="/login" id="logout">Log out</a></nav>
+</header>
+<main>
+  <h1>Dashboard</h1>
+  <div id="notification-error" class="banner error" role="alert" hidden></div>
+  <section class="grid" aria-label="Statistics">
+    <div class="card"><h2>Visitors</h2><p data-testid="visitors">…</p></div>
+    <div class="card"><h2>Conversions</h2><p data-testid="conversions">…</p></div>
+    <div class="card"><h2>Revenue</h2><p data-testid="revenue">…</p></div>
+  </section>
+  <section class="card" aria-label="Notifications"><h2>Notifications</h2><ul id="notifications"></ul></section>
+</main>
+<script src="/js/nav.js"></script>
+<script src="/js/dashboard.js"></script>
+</body>
+</html>

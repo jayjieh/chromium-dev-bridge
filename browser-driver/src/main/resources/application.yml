@@ -1,0 +1,93 @@
+# Chromium Developer Bridge — browser driver defaults. Override with --cdb.x=y, CDB_X env vars or an external
+# application.yml next to the jar. See docs/implementation/INSTALLATION.md.
+server:
+  address: 127.0.0.1
+  port: ${CDB_PORT:7878}
+  shutdown: graceful
+  error:
+    whitelabel:
+      enabled: false
+  tomcat:
+    max-swallow-size: 2MB
+    max-http-form-post-size: 1MB
+
+spring:
+  application:
+    name: cdb-driver
+  main:
+    banner-mode: off
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+  mvc:
+    problemdetails:
+      enabled: true
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: never
+  metrics:
+    tags:
+      application: cdb-driver
+
+logging:
+  pattern:
+    level: "%5p [corr=%X{correlationId:-} session=%X{sessionId:-}]"
+  level:
+    root: INFO
+    com.microsoft.playwright: WARN
+
+cdb:
+  data-dir: ${user.home}/.chromium-dev-bridge
+  browser:
+    executable-path:
+    channel:
+    install: true
+    headless: true
+    viewport-width: 1280
+    viewport-height: 800
+    pump-interval: 20ms
+    args: []
+  sessions:
+    max: 10
+    idle-timeout: 30m
+    operation-timeout: 10s
+    navigation-timeout: 30s
+    console-buffer: 1000
+    network-buffer: 1000
+    auto-restart: true
+  capture:
+    bodies: false
+    max-body-bytes: 65536
+    source-maps: true
+  screenshots:
+    per-session: 100
+    max-age: 7d
+  security:
+    allowed-hosts: [localhost, 127.0.0.1, "[::1]", "*.localhost", "*.test"]
+    allow-file-urls: false
+    allow-evaluate: false
+    accept-downloads: false
+    enforce-navigation-guard: true
+    allowed-origins: []
+    allowed-host-headers: [localhost, 127.0.0.1, "[::1]"]
+    rate-limit-per-second: 50
+    rate-limit-burst: 200
+    max-request-bytes: 1048576
+    max-websocket-message-bytes: 65536
+    admin-token:
+    agent-token:
+    connection-file: ${cdb.data-dir}/driver.json
+  audit:
+    enabled: true
+    retention-days: 14

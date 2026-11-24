@@ -167,6 +167,12 @@ public class SessionManager implements AutoCloseable {
                 .toList();
     }
 
+    /** True when the session exists and the principal may use it. */
+    public boolean canAccess(Principal principal, String sessionId) {
+        ManagedSession s = sessionId == null ? null : sessions.get(sessionId);
+        return s != null && s.canAccess(principal);
+    }
+
     public SessionInfo get(Principal principal, String sessionId) {
         return access(principal, sessionId).info();
     }

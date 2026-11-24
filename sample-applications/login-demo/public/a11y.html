@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Accessibility checks</title>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<main>
+  <h1>Accessibility test elements</h1>
+  <h3>Skipped heading level (h1 to h3)</h3>
+  <img src="/logo.svg" width="40" height="40">
+  <img src="/logo.svg" width="40" height="40" alt="Company logo">
+  <input id="unlabeled" type="text">
+  <label for="labeled">Search</label><input id="labeled" type="search">
+  <button aria-label="Close dialog">✕</button>
+  <button></button>
+  <div role="button" tabindex="0" data-testid="fake-button">Custom button</div>
+</main>
+</body>
+</html>

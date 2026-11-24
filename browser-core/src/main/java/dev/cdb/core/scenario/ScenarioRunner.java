@@ -212,10 +212,7 @@ public class ScenarioRunner {
             case "assertNetworkStatus" -> {
                 if (st.urlPattern() == null || st.status() == null) throw new IllegalArgumentException("assertNetworkStatus needs urlPattern and status");
                 String pattern = vars.resolve(st.urlPattern());
-                List<NetworkEntry> matches = sessions.network(p, id,
-                        new NetworkQuery(null, null, null, null, null, pattern, null, networkBaseline, 1000)).items();
-                if (matches.isEmpty()) throw new IllegalStateException("No request matched " + pattern);
-                NetworkEntry last = matches.get(matches.size() - 1);
+                NetworkEntry last = awaitCompletedRequest(p, id, pattern, networkBaseline, timeout);
                 if (last.status() == null || !last.status().equals(st.status())) {
                     throw new IllegalStateException("Expected status " + st.status() + " for " + NetworkLog.summary(last).get("url")
                             + " but got " + (last.status() != null ? last.status() : last.failureText()));
@@ -242,6 +239,29 @@ public class ScenarioRunner {
             }
             default -> throw new IllegalArgumentException("Unknown action: " + action);
         }
+    }
+
+    /** Waits until the latest request matching the pattern has completed or failed. */
+    private NetworkEntry awaitCompletedRequest(Principal p, String id, String pattern, long baseline, int timeoutMs) {
+        long deadline = System.currentTimeMillis() + timeoutMs;
+        NetworkEntry last = null;
+        while (true) {
+            List<NetworkEntry> matches = sessions.network(p, id,
+                    new NetworkQuery(null, null, null, null, null, pattern, null, baseline, 1000)).items();
+            if (!matches.isEmpty()) {
+                last = matches.get(matches.size() - 1);
+                if (last.state() != NetworkState.PENDING) return last;
+            }
+            if (System.currentTimeMillis() >= deadline) break;
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+        if (last == null) throw new IllegalStateException("No request matched " + pattern);
+        return last;
     }
 
     private String act(Principal p, String id, ActionRequest r) {
