@@ -3,13 +3,13 @@
 ## Requirements
 | Component | Version |
 |---|---|
-| JDK | 21+ (Temurin, Oracle, Corretto) |
+| JDK | 17+ (Temurin, Oracle, Corretto); 21 to build the IntelliJ plugin |
 | Maven | 3.8+ |
 | Node.js | 18+ (sample app and end-to-end tests only) |
 | IntelliJ IDEA | 2025.3+ (plugin) |
 | Disk | ~400 MB for Playwright's Chromium (downloaded on first session) |
 
-## Windows (verified on Windows 11, JDK 21, Maven 3.8.1)
+## Windows (verified on Windows 11 with JDK 17.0.3 and 21.0.9, Maven 3.8.1)
 ```powershell
 git clone <repo> chromium-dev-bridge; cd chromium-dev-bridge
 mvn install -DskipTests
@@ -20,14 +20,14 @@ Check: `Invoke-RestMethod http://127.0.0.1:7878/api/v1/health` returns `status: 
 
 ## macOS
 ```bash
-brew install openjdk@21 maven node
+brew install openjdk@17 maven node
 mvn install -DskipTests
 scripts/macos/start-driver.sh
 ```
 
 ## Linux
 ```bash
-sudo apt install openjdk-21-jdk maven nodejs
+sudo apt install openjdk-17-jdk maven nodejs
 mvn install -DskipTests
 # Chromium system libraries (once):
 sudo npx -y playwright@1.65.1 install-deps chromium

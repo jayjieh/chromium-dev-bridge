@@ -4,7 +4,7 @@ Toolchain verified on 2026-11-24 against Maven Central / Gradle services:
 
 | Component | Version | Notes |
 |---|---|---|
-| JDK | 21 (LTS) | Driver, MCP server, plugin JVM target |
+| JDK | 17+ (LTS) runtime/target for driver and MCP server; 21 for the IntelliJ plugin | Lowered from 21 to 17 on 2026-11-24; CI tests the backend on 17 |
 | Spring Boot | 3.5.16 | Latest 3.x line (4.x exists; the brief requires 3.x / Spring Framework 6.x) |
 | Playwright for Java | 1.65.1 | Bundled Chromium downloaded on first use |
 | Jackson | managed by Spring Boot BOM (2.x) | |

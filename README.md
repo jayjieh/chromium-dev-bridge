@@ -9,7 +9,7 @@ and AI coding agents (GitHub Copilot, Claude Code, Codex, Cursor and other MCP c
 
 ## Install (no build needed)
 
-You need **Java 21 or later** ([Adoptium](https://adoptium.net); check with `java -version`), **Google Chrome**, and
+You need **Java 17 or later** ([Adoptium](https://adoptium.net); check with `java -version`), **Google Chrome**, and
 **IntelliJ IDEA 2025.3+** for the plugin.
 
 ### 1. Download and set up
@@ -142,7 +142,7 @@ To publish a release, update `VERSION` and push a `v*` tag: the Release workflow
 
 ### Quick start from sources (5 minutes)
 
-Requirements: JDK 21, Maven 3.8+, Node 18+ (only for the sample app).
+Requirements: JDK 17+ (the IntelliJ plugin build needs 21), Maven 3.8+, Node 18+ (only for the sample app).
 
 ```bash
 mvn install -DskipTests                       # builds all backend modules

@@ -1,6 +1,6 @@
 # Progress
 
-Last updated: 2026-11-24. Verified on Windows 11, JDK 21.0.9, Maven 3.8.1, Node 22.12, Gradle 9.2.1, IntelliJ Platform 2025.3.
+Last updated: 2026-11-24. Verified on Windows 11, JDK 17.0.3 (full test suite and packaged jars) and 21.0.9, Maven 3.8.1, Node 22.12, Gradle 9.2.1, IntelliJ Platform 2025.3.
 
 ## Test status
 | Suite | Result |

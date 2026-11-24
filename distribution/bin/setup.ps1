@@ -11,11 +11,11 @@ if (Get-Command java -ErrorAction SilentlyContinue) {
     $javaVersion = (cmd /c "java -version 2>&1" | Select-Object -First 1)
 }
 if (-not $javaVersion) {
-    Write-Host "Java was not found. Install Java 21 or later (e.g. https://adoptium.net) and run setup again." -ForegroundColor Red
+    Write-Host "Java was not found. Install Java 17 or later (e.g. https://adoptium.net) and run setup again." -ForegroundColor Red
     exit 1
 }
 if ($javaVersion -match '"(\d+)') {
-    if ([int]$Matches[1] -lt 21) { Write-Host "Java 21 or later is required; found: $javaVersion" -ForegroundColor Red; exit 1 }
+    if ([int]$Matches[1] -lt 17) { Write-Host "Java 17 or later is required; found: $javaVersion" -ForegroundColor Red; exit 1 }
 }
 
 $dataDir = Join-Path $env:USERPROFILE ".chromium-dev-bridge"

@@ -3,11 +3,11 @@
 set -euo pipefail
 HOME_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 if ! command -v java >/dev/null 2>&1; then
-  echo "Java was not found. Install Java 21 or later (e.g. https://adoptium.net) and run setup again." >&2; exit 1
+  echo "Java was not found. Install Java 17 or later (e.g. https://adoptium.net) and run setup again." >&2; exit 1
 fi
 VER_LINE="$(java -version 2>&1 | head -1)"
 MAJOR="$(echo "$VER_LINE" | sed -E 's/.*"([0-9]+).*/\1/')"
-if [[ "$MAJOR" =~ ^[0-9]+$ ]] && (( MAJOR < 21 )); then echo "Java 21 or later is required; found: $VER_LINE" >&2; exit 1; fi
+if [[ "$MAJOR" =~ ^[0-9]+$ ]] && (( MAJOR < 17 )); then echo "Java 17 or later is required; found: $VER_LINE" >&2; exit 1; fi
 mkdir -p "$HOME/.chromium-dev-bridge"
 cat > "$HOME/.chromium-dev-bridge/install.json" <<JSON
 { "home": "$HOME_DIR", "driverJar": "$HOME_DIR/lib/cdb-driver.jar", "mcpJar": "$HOME_DIR/lib/cdb-mcp-server.jar", "version": "$(cat "$HOME_DIR/VERSION")" }

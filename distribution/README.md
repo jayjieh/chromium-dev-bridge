@@ -3,7 +3,7 @@
 Gives GitHub Copilot, Claude Code and other AI agents, plus IntelliJ IDEA, a browser they can inspect and drive:
 your local web app, your own Chrome tabs, console errors, network requests, screenshots.
 
-**You need:** Java 21 or later (`java -version`), Chrome, and for the IDE part IntelliJ IDEA 2025.3 or later.
+**You need:** Java 17 or later (`java -version`), Chrome, and for the IDE part IntelliJ IDEA 2025.3 or later.
 No source code or build tools.
 
 ```
@@ -112,7 +112,7 @@ debugging; attach from IntelliJ > Sessions > *Attach to Chrome…*.
 ## Troubleshooting
 | Problem | Fix |
 |---|---|
-| `java` not found / wrong version | Install Java 21+ (Temurin), reopen the terminal |
+| `java` not found / wrong version | Install Java 17+ (Temurin), reopen the terminal |
 | Copilot doesn't list the tools | Agent mode; check the jar path in `mcp.json`; org policy for Business/Enterprise |
 | Extension dot stays red | Start the driver; pair again with a fresh code |
 | "This page can't be shared" | Chrome's own pages (New Tab, `chrome://`) can't be shared; open your app first |

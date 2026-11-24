@@ -1,7 +1,7 @@
 # AGENTS.md — guidance for AI coding agents working on this repository
 
 ## Build & test
-* Backend: `mvn verify` from the repository root (JDK 21). `-DskipITs` skips `integration-tests` (needs Node + Chromium).
+* Backend: `mvn verify` from the repository root (JDK 17 or later; CI tests on 17). `-DskipITs` skips `integration-tests` (needs Node + Chromium).
 * Single module: `mvn -q install -pl browser-core` (install upstream modules first).
 * Real-browser provider test: `mvn -q test -pl playwright-provider -Dcdb.browserTests=true`.
 * Plugin: `mvn install -DskipTests` first, then `cd intellij-plugin && ./gradlew buildPlugin test`.
@@ -20,6 +20,6 @@
 * MCP tools must wrap page-derived text with `UntrustedContent.wrap` and never expose JavaScript evaluation.
 
 ## Conventions
-* Java 21, records for data, `BridgeException(ErrorCode, message)` for domain errors.
+* Java 17 language level (no Java 21 APIs or syntax: the release flag enforces it), records for data, `BridgeException(ErrorCode, message)` for domain errors.
 * Tests: JUnit 5 + AssertJ; fast tests use `FakeProvider` (browser-core test-jar).
 * Update `docs/implementation/PROGRESS.md` when you complete a roadmap item, and add an ADR for significant decisions.
