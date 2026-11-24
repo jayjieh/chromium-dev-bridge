@@ -1,0 +1,10 @@
+# Add to ~/.codex/config.toml
+[mcp_servers.chromium-bridge]
+command = "java"
+args = [
+  "-jar", "/ABSOLUTE/PATH/chromium-dev-bridge/mcp-server/target/cdb-mcp-server.jar",
+  "--driver-jar", "/ABSOLUTE/PATH/chromium-dev-bridge/browser-driver/target/cdb-driver-exec.jar",
+]
+env = { CDB_CLIENT_NAME = "codex" }
+startup_timeout_sec = 60
+tool_timeout_sec = 180

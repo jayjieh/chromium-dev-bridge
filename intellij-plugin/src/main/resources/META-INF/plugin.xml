@@ -1,0 +1,29 @@
+<idea-plugin>
+    <id>dev.cdb.chromium-dev-bridge</id>
+    <name>Chromium Developer Bridge</name>
+    <vendor>Chromium Developer Bridge contributors</vendor>
+    <description><![CDATA[
+    Inspect and automate a Playwright-managed Chromium from IntelliJ IDEA: live browser preview, DOM inspector,
+    console with source navigation, network table with waterfall, screenshots and visual comparison, session management,
+    and setup for AI coding agents over MCP (Claude Code, Codex, Cursor).
+    The browser driver runs as a separate local process; see the project README.
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <toolWindow id="Chromium Bridge" anchor="right" secondary="false" icon="/icons/cdb.svg"
+                    factoryClass="dev.cdb.intellij.ui.BridgeToolWindowFactory"/>
+        <applicationService serviceImplementation="dev.cdb.intellij.CdbSettings"/>
+        <applicationConfigurable parentId="tools" instance="dev.cdb.intellij.CdbConfigurable"
+                                 id="dev.cdb.settings" displayName="Chromium Developer Bridge"/>
+        <notificationGroup id="Chromium Developer Bridge" displayType="BALLOON"/>
+    </extensions>
+
+    <actions>
+        <action id="dev.cdb.OpenInBridge" class="dev.cdb.intellij.actions.OpenUrlAction"
+                text="Open URL in Chromium Bridge" description="Navigate the selected bridge session to a URL">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+    </actions>
+</idea-plugin>

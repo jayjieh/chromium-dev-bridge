@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "chromium-bridge": {
+      "command": "java",
+      "args": ["-jar", "/ABSOLUTE/PATH/chromium-dev-bridge/mcp-server/target/cdb-mcp-server.jar"],
+      "env": { "CDB_CLIENT_NAME": "cursor" }
+    }
+  }
+}

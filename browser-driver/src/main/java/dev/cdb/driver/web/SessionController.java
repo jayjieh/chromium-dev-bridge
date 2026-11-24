@@ -187,6 +187,12 @@ public class SessionController {
         return sessions.screenshot(p, sessionId, request);
     }
 
+    @GetMapping(value = "/{sessionId}/preview", produces = "image/jpeg")
+    public byte[] preview(Principal p, @PathVariable String sessionId, @RequestParam(required = false) String tabId,
+                          @RequestParam(required = false) Integer quality) {
+        return sessions.preview(p, sessionId, tabId, quality);
+    }
+
     @GetMapping("/{sessionId}/screenshots")
     public List<ScreenshotInfo> screenshots(Principal p, @PathVariable String sessionId) {
         return sessions.screenshots(p, sessionId);

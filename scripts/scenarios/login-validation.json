@@ -1,0 +1,13 @@
+{
+  "name": "Login page validation",
+  "baseUrl": "http://localhost:3000",
+  "steps": [
+    { "action": "navigate", "path": "/login" },
+    { "action": "fill", "locator": { "role": "textbox", "name": "Email" }, "value": "${TEST_EMAIL}" },
+    { "action": "fill", "locator": { "testId": "password" }, "value": "${TEST_PASSWORD}" },
+    { "action": "click", "locator": { "role": "button", "name": "Sign In" } },
+    { "action": "assertVisible", "text": "Dashboard" },
+    { "action": "assertNetworkStatus", "urlPattern": "**/api/login", "status": 200 },
+    { "action": "screenshot", "name": "dashboard-after-login" }
+  ]
+}

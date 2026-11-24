@@ -478,6 +478,13 @@ public class SessionManager implements AutoCloseable {
         });
     }
 
+    /** Live-preview frame (JPEG, viewport, sensitive fields masked). Not stored in the screenshot history. */
+    public byte[] preview(Principal p, String sessionId, String tabId, Integer quality) {
+        int q = quality == null ? 60 : Math.max(10, Math.min(90, quality));
+        return run(p, sessionId, s -> s.requireRunning().screenshot(new ScreenshotRequest(tabId, null, false, null,
+                ImageFormat.JPEG, q, null, true, false)).bytes());
+    }
+
     public List<ScreenshotInfo> screenshots(Principal p, String sessionId) {
         access(p, sessionId);
         return screenshots.list(sessionId);

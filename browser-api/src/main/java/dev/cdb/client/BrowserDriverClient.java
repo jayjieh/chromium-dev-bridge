@@ -232,6 +232,15 @@ public class BrowserDriverClient {
         return r.body();
     }
 
+    /** JPEG frame of the active tab for live previews (not stored). */
+    public byte[] preview(String id, String tabId, int quality) {
+        Map<String, Object> q = tab(tabId);
+        q.put("quality", quality);
+        HttpResponse<byte[]> r = exchange("GET", s(id) + "/preview" + query(q), null, HttpResponse.BodyHandlers.ofByteArray());
+        if (r.statusCode() >= 400) throw problem(r.statusCode(), new String(r.body(), StandardCharsets.UTF_8));
+        return r.body();
+    }
+
     public CompareResult compare(CompareRequest request) {
         return send("POST", "/api/v1/screenshots/compare", request, CompareResult.class);
     }
