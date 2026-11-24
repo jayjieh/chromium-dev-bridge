@@ -58,9 +58,28 @@ class PluginServicesTest : BasePlatformTestCase() {
         // No exception and the tree model contains both nodes under the page root.
     }
 
+    fun testReadsInstalledBundleLocation() {
+        val dir = java.nio.file.Files.createTempDirectory("cdb-install")
+        val jar = java.nio.file.Files.createFile(dir.resolve("cdb-driver.jar"))
+        val file = dir.resolve("install.json")
+        // PowerShell 5.1 writes UTF-8 with a BOM; it must still parse.
+        java.nio.file.Files.write(file, byteArrayOf(0xEF.toByte(), 0xBB.toByte(), 0xBF.toByte()) +
+            ("{\"home\":\"" + dir.toString().replace("\\", "\\\\") + "\",\"driverJar\":\"" +
+                jar.toString().replace("\\", "\\\\") + "\",\"mcpJar\":\"x/cdb-mcp-server.jar\",\"version\":\"0.1.0\"}").toByteArray())
+        val info = InstallInfo.read(file)
+        assertNotNull(info)
+        assertEquals("0.1.0", info!!.version)
+        assertEquals(jar.toString(), info.driverJar)
+        assertNull(InstallInfo.read(dir.resolve("missing.json")))
+        assertEquals("explicit.jar", InstallInfo.driverJar("explicit.jar"))
+    }
+
     fun testAgentConfigSnippets() {
         assertTrue(AgentPanel.claudeCommand("/x/cdb-mcp-server.jar").contains("claude mcp add chromium-bridge -- java -jar"))
         assertTrue(AgentPanel.mcpJson("C:\\x\\cdb.jar").contains("C:\\\\x\\\\cdb.jar"))
         assertTrue(AgentPanel.codexToml("/x.jar").startsWith("[mcp_servers.chromium-bridge]"))
+        val copilot = AgentPanel.copilotJson("C:\\tools\\cdb-mcp-server.jar")
+        assertTrue(copilot.contains("\"servers\""))
+        assertTrue(copilot.contains("C:/tools/cdb-mcp-server.jar"))
     }
 }

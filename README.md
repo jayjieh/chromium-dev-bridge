@@ -19,7 +19,13 @@ AI agent ──MCP stdio──► MCP server ─┘
 * **IntelliJ plugin**: Browser preview, Elements, Console (click to open the source), Network with a waterfall,
   Screenshots, AI Agent setup, Sessions and approvals, and Settings.
 
-## Quick start (5 minutes)
+## Using a release bundle (no sources needed)
+
+Download the zip for your OS, unzip, run `bin/setup`, and follow `README.md` inside the bundle (Copilot / Claude /
+Codex MCP configs, IntelliJ plugin, Chrome extension). Build the bundles with `scripts/package-release.ps1`
+(or `.sh`); they land in `dist/`.
+
+## Quick start from sources (5 minutes)
 
 Requirements: JDK 21, Maven 3.8+, Node 18+ (only for the sample app).
 

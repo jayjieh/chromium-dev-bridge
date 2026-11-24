@@ -61,16 +61,17 @@ class DriverService : Disposable {
 
     private fun startDriver(): ConnectionInfo {
         val s = CdbSettings.get().state
-        if (!s.autoStartDriver || s.driverJarPath.isBlank()) {
+        val jar = InstallInfo.driverJar(s.driverJarPath)
+        if (!s.autoStartDriver || jar == null) {
             throw IllegalStateException(
-                "Driver is not running. Start it (scripts/<os>/start-driver) or set the driver jar in " +
-                    "Settings | Tools | Chromium Developer Bridge."
+                "Driver is not running. Start it (bin/start-driver in the release bundle), run bin/setup once so the " +
+                    "IDE can start it, or set the driver jar in Settings | Tools | Chromium Developer Bridge."
             )
         }
-        log.info("Starting Chromium Developer Bridge driver from ${s.driverJarPath}")
+        log.info("Starting Chromium Developer Bridge driver from $jar")
         val file = connectionFile()
         return DriverLauncher.start(
-            Path.of(s.driverJarPath), file, file.resolveSibling("logs").resolve("driver.log"), listOf(), Duration.ofSeconds(90)
+            Path.of(jar), file, file.resolveSibling("logs").resolve("driver.log"), listOf(), Duration.ofSeconds(90)
         )
     }
 

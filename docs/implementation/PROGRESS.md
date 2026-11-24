@@ -70,10 +70,12 @@ Last updated: 2026-11-24. Verified on Windows 11, JDK 21.0.9, Maven 3.8.1, Node 
 - [ ] Richer source-map support (`names`, sections/index maps)
 - [ ] Streamable HTTP MCP transport
 
-## Phase 6 — Distribution (not started)
-- [ ] Marketplace preparation (signing, icons, change notes)
-- [ ] Driver distribution packages / installers, upgrade mechanism
-- [ ] Release automation (CI builds artifacts; no release workflow yet)
+## Phase 6 — Distribution (partially done)
+- [x] Release bundles (`scripts/package-release.ps1|sh`): per-platform zips (~70–81 MB, driver slimmed to one Playwright runtime) and an all-platforms zip; plugin zip, unpacked Chrome extension, `bin/` setup + helper scripts, setup guide (`distribution/README.md`)
+- [x] `bin/setup` records the install (`~/.chromium-dev-bridge/install.json`); the IDE plugin and MCP server start the bundled driver with no settings
+- [x] `bin/mcp-config` prints Copilot (IntelliJ, VS Code, CLI), Claude Code and Codex configs with the bundle's paths
+- [x] Release workflow (`.github/workflows/release.yml`, on `v*` tags)
+- [ ] Marketplace / Chrome Web Store publishing (signing, listings) and an upgrade mechanism
 - [ ] Hands-on verification on macOS and Linux (the CI matrix covers backend tests on all three OSes)
 
 ## MVP acceptance criteria

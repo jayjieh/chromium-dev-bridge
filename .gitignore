@@ -10,3 +10,4 @@ driver.json
 node_modules/
 out/
 target/
+dist/
