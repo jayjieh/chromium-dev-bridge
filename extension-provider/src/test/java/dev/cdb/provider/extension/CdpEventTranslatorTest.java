@@ -65,6 +65,40 @@ class CdpEventTranslatorTest {
     }
 
     @Test
+    void dropsOutputFromOtherExtensions() throws Exception {
+        t.handle("Runtime.executionContextCreated", j("""
+                {"context":{"id":1,"origin":"http://localhost:3000","name":"","auxData":{"isDefault":true,"type":"default"}}}
+                """), false);
+        t.handle("Runtime.executionContextCreated", j("""
+                {"context":{"id":5,"origin":"chrome-extension://abcdefghijklmnop","name":"Some Extension","auxData":{"isDefault":false,"type":"isolated"}}}
+                """), false);
+        // Error thrown in the extension's content-script world.
+        t.handle("Runtime.exceptionThrown", j("""
+                {"exceptionDetails":{"text":"Uncaught","executionContextId":5,"exception":{"description":"Error: boom in extension"}}}
+                """), false);
+        // Extension messaging rejection without context information.
+        t.handle("Runtime.exceptionThrown", j("""
+                {"exceptionDetails":{"text":"Uncaught (in promise)","exception":{"description":"Error: A listener indicated an asynchronous response by returning true, but the message channel closed before a response was received"}}}
+                """), false);
+        // console.error made from an extension script.
+        t.handle("Runtime.consoleAPICalled", j("""
+                {"type":"error","executionContextId":1,"args":[{"type":"string","value":"from extension"}],
+                 "stackTrace":{"callFrames":[{"url":"chrome-extension://abcdefghijklmnop/content.js","lineNumber":1,"columnNumber":1}]}}
+                """), false);
+        // The page's own error is kept.
+        t.handle("Runtime.exceptionThrown", j("""
+                {"exceptionDetails":{"text":"Uncaught","executionContextId":1,"exception":{"description":"TypeError: page bug\\n    at http://localhost:3000/app.js:1:1"}}}
+                """), false);
+        assertThat(console).extracting(ConsoleEntry::message).containsExactly("TypeError: page bug");
+
+        t.handle("Runtime.executionContextsCleared", j("{}"), false);
+        t.handle("Runtime.exceptionThrown", j("""
+                {"exceptionDetails":{"text":"Uncaught","executionContextId":5,"exception":{"description":"Error: new page reused id 5"}}}
+                """), false);
+        assertThat(console).hasSize(2);
+    }
+
+    @Test
     void networkLifecycleRedirectsAndFailures() throws Exception {
         t.handle("Network.requestWillBeSent", j("""
                 {"requestId":"1","loaderId":"L1","type":"Document","timestamp":100.0,"wallTime":1700000000,

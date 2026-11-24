@@ -28,6 +28,18 @@ final class CdpEventTranslator {
     private final BrowserEventListener listener;
     private final Map<String, Req> requests = new LinkedHashMap<>();
     private final Map<String, Integer> documentStatus = new LinkedHashMap<>();
+    /** Execution contexts that belong to other browser extensions (content-script isolated worlds). */
+    private final java.util.Set<Integer> extensionContexts = new java.util.HashSet<>();
+
+    /**
+     * Messages only Chrome's extension messaging APIs produce. Used when an error carries no execution context to
+     * attribute it to (e.g. rejections from chrome.runtime.sendMessage in another extension's content script).
+     */
+    private static final java.util.List<String> EXTENSION_MESSAGES = java.util.List.of(
+            "message channel closed before a response was received",
+            "Could not establish connection. Receiving end does not exist",
+            "Extension context invalidated",
+            "The message port closed before a response was received");
 
     private static final class Req {
         String entryId;
@@ -64,8 +76,17 @@ final class CdpEventTranslator {
 
     synchronized void handle(String method, JsonNode p, boolean captureBodies) {
         switch (method) {
-            case "Runtime.consoleAPICalled" -> console(p);
-            case "Runtime.exceptionThrown" -> exception(p.path("exceptionDetails"));
+            case "Runtime.executionContextCreated" -> contextCreated(p.path("context"));
+            case "Runtime.executionContextDestroyed" -> extensionContexts.remove(p.path("executionContextId").asInt(-1));
+            case "Runtime.executionContextsCleared" -> extensionContexts.clear();
+            case "Runtime.consoleAPICalled" -> {
+                if (!fromOtherExtension(p.path("executionContextId"), p.path("stackTrace"), null)) console(p);
+            }
+            case "Runtime.exceptionThrown" -> {
+                JsonNode d = p.path("exceptionDetails");
+                String text = d.path("exception").path("description").asText(d.path("text").asText(""));
+                if (!fromOtherExtension(d.path("executionContextId"), d.path("stackTrace"), text)) exception(d);
+            }
             case "Log.entryAdded" -> log(p.path("entry"));
             case "Network.requestWillBeSent" -> requestWillBeSent(p, captureBodies);
             case "Network.responseReceived" -> responseReceived(p);
@@ -76,6 +97,31 @@ final class CdpEventTranslator {
             case "Network.webSocketFrameError" -> webSocketEnded(p, p.path("errorMessage").asText("WebSocket error"));
             default -> { }
         }
+    }
+
+    // ---------------------------------------------------------------- other extensions
+
+    private void contextCreated(JsonNode ctx) {
+        String origin = ctx.path("origin").asText("");
+        String type = ctx.path("auxData").path("type").asText("");
+        if (origin.startsWith("chrome-extension://") || type.equals("isolated")) extensionContexts.add(ctx.path("id").asInt());
+    }
+
+    /** True for console output and errors that come from other extensions rather than the page under test. */
+    boolean fromOtherExtension(JsonNode contextId, JsonNode stackTrace, String errorText) {
+        if (contextId.canConvertToInt() && extensionContexts.contains(contextId.asInt())) return true;
+        // Only when every frame is extension code: devtools extensions wrap console.error, so a page's own message can
+        // have an extension frame on top of the page frames.
+        JsonNode frames = stackTrace.path("callFrames");
+        boolean allExtension = frames.size() > 0;
+        for (JsonNode f : frames) {
+            if (!f.path("url").asText("").startsWith("chrome-extension://")) allExtension = false;
+        }
+        if (allExtension) return true;
+        if (errorText != null) {
+            for (String m : EXTENSION_MESSAGES) if (errorText.contains(m)) return true;
+        }
+        return false;
     }
 
     // ---------------------------------------------------------------- console

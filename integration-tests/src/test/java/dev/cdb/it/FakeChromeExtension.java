@@ -26,7 +26,8 @@ import java.util.concurrent.TimeUnit;
  */
 final class FakeChromeExtension implements AutoCloseable {
     static final List<String> EVENTS = List.of("Page.frameNavigated", "Page.frameStartedLoading", "Page.domContentEventFired",
-            "Page.loadEventFired", "Page.navigatedWithinDocument", "Runtime.consoleAPICalled", "Runtime.exceptionThrown",
+            "Page.loadEventFired", "Page.navigatedWithinDocument", "Runtime.executionContextCreated",
+            "Runtime.executionContextDestroyed", "Runtime.executionContextsCleared", "Runtime.consoleAPICalled", "Runtime.exceptionThrown",
             "Log.entryAdded", "Network.requestWillBeSent", "Network.responseReceived", "Network.loadingFinished",
             "Network.loadingFailed", "Network.webSocketCreated", "Network.webSocketClosed", "Inspector.detached");
 
