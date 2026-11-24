@@ -56,6 +56,10 @@ foreach ($platform in $Platforms) {
     Write-Host ("{0,-60} {1,8:N0} MB" -f (Split-Path $zip -Leaf), ((Get-Item $zip).Length / 1MB))
 }
 
+$pluginOut = Join-Path $dist "chromium-dev-bridge-intellij-$version.zip"
+Copy-Item $pluginZip.FullName $pluginOut -Force
+Write-Host ("{0,-60} {1,8:N2} MB" -f (Split-Path $pluginOut -Leaf), ((Get-Item $pluginOut).Length / 1MB))
+
 $extZip = Join-Path $dist "chromium-dev-bridge-extension-$version.zip"
 Remove-Item -Force $extZip -ErrorAction SilentlyContinue
 Push-Location (Join-Path $root "chrome-extension")

@@ -50,6 +50,8 @@ for platform in "${PLATFORMS[@]}"; do
   rm -rf "$STAGE"
   echo "$NAME-$platform.zip  $(du -h "$DIST/$NAME-$platform.zip" | cut -f1)"
 done
+cp "$PLUGIN_ZIP" "$DIST/chromium-dev-bridge-intellij-$VERSION.zip"
+echo "chromium-dev-bridge-intellij-$VERSION.zip"
 rm -f "$DIST/chromium-dev-bridge-extension-$VERSION.zip"
 (cd "$ROOT/chrome-extension" && zip -qr "$DIST/chromium-dev-bridge-extension-$VERSION.zip" .)
 echo "chromium-dev-bridge-extension-$VERSION.zip"
