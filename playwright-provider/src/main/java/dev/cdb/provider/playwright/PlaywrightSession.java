@@ -100,9 +100,10 @@ final class PlaywrightSession implements BrowserSessionDriver {
 
     private void createContext() {
         if (spec.connectEndpoint() != null) {
+            // Quick attach: use the running Chrome's existing (default) context so its open tabs are visible.
             browser = worker.playwright().chromium().connectOverCDP(spec.connectEndpoint());
             browser.onDisconnected(b -> browserDisconnected());
-            context = browser.newContext(contextOptions());
+            context = browser.contexts().isEmpty() ? browser.newContext(contextOptions()) : browser.contexts().get(0);
         } else if (spec.profileDir() != null) {
             BrowserType.LaunchPersistentContextOptions o = new BrowserType.LaunchPersistentContextOptions()
                     .setHeadless(spec.headless())
@@ -906,6 +907,20 @@ final class PlaywrightSession implements BrowserSessionDriver {
                 }
             }
             if (urls.isEmpty()) urls = lastUrls;
+            if (attached()) {
+                // Never close the user's tabs: just reconnect and pick up the tabs that are open now.
+                try {
+                    if (browser != null && browser.isConnected()) browser.close();
+                } catch (RuntimeException ignored) {
+                    // already disconnected
+                }
+                tabs.clear();
+                tabIds.clear();
+                activeTabId = null;
+                connected = true;
+                createContext();
+                return null;
+            }
             try {
                 if (context != null) context.close();
             } catch (RuntimeException ignored) {
@@ -948,7 +963,8 @@ final class PlaywrightSession implements BrowserSessionDriver {
                 closed = true;
                 worker.unregister(this);
                 try {
-                    if (context != null) context.close();
+                    // Attached Chrome: disconnect only; the user's context and tabs stay open.
+                    if (context != null && !attached()) context.close();
                 } catch (RuntimeException e) {
                     log.debug("Context close failed: {}", e.toString());
                 }
@@ -967,6 +983,10 @@ final class PlaywrightSession implements BrowserSessionDriver {
             closed = true;
             if (dedicated) worker.close();
         }
+    }
+
+    private boolean attached() {
+        return spec.connectEndpoint() != null;
     }
 
     // ------------------------------------------------------------------ conversion helpers

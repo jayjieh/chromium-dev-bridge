@@ -30,10 +30,17 @@
 | T12 | Repudiation: who did what | Local JSONL audit log with principal, operation, session, outcome, correlation id; retention configurable |
 | T13 | Attaching to the user's personal browser profile | Never automatic: persistent profiles live under the driver's data dir; attach requires an explicit loopback endpoint and the admin token |
 
+| T14 | A shared tab of the user's real browser exposes personal data to agents | Sharing is per tab and explicit (popup click); agent access is a separate choice; reads, screenshots, actions and captured console/network data are refused while the tab is on a non-allowed origin; the extension relays only allowlisted CDP commands (no cookie/storage APIs); Chrome's debugging infobar is always visible |
+| T15 | A web page or another extension talks to the driver's extension endpoint | Endpoint requires a `chrome-extension://` origin (optionally pinned ids) and the pairing token as WebSocket sub-protocol; pairing codes are only accepted for loopback hosts |
+
 ## Residual risks
 * An agent with shell access can read the connection file and use the admin token. The agent token separation
   protects against prompt-injected *tool use*, not against a fully compromised agent with shell access.
 * Heuristic injection detection can be bypassed; the URL allowlist and approvals are the primary controls.
 * On a development origin all actions are allowed: a local app wired to real third-party services (payments, email)
   can still cause real effects. Use test credentials and sandboxes.
+* A user who approves a personal site from the extension popup gives tools (and agents, if allowed) access to that
+  page while it is shared. The popup warns about this; approvals are per session.
+* The extension token is long-lived (persisted for convenience); anyone who can read the user's home directory can
+  pair. Delete `~/.chromium-dev-bridge/extension-token` to rotate.
 * Service workers can bypass Playwright request routing for subresources (top-level navigation is still checked).

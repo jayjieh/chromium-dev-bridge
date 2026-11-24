@@ -7,7 +7,10 @@
 * Plugin: `mvn install -DskipTests` first, then `cd intellij-plugin && ./gradlew buildPlugin test`.
 
 ## Architecture rules
-* `browser-core` stays free of Spring and Playwright. Providers implement `dev.cdb.core.spi.*`.
+* `browser-core` stays free of Spring and Playwright. The page helper script used by both providers lives in
+  `browser-core/src/main/resources/cdb/page-helpers.js` (run `mvn clean install` after moving resources).
+* The Chrome extension (`chrome-extension/`) only relays CDP commands listed in `common.js` `ALLOWED_COMMANDS`; add a
+  command there only with a security review. Providers implement `dev.cdb.core.spi.*`.
 * Playwright objects are only touched on their `PlaywrightWorker` thread (ADR-0002). Use `worker.call(...)`.
 * Every API change starts in `docs/api/OPENAPI.yaml`. `OpenApiContractTest` fails if controllers and the document differ.
 * DTOs live in `shared-protocol` as records. Keep them backward compatible (add fields, don't rename).

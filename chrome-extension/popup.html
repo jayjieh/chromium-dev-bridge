@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Chromium Developer Bridge</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <span id="dot" class="dot"></span>
+    <strong>Chromium Developer Bridge</strong>
+  </header>
+
+  <section id="pairing" hidden>
+    <p>Paste the pairing code from IntelliJ (<em>Chromium Bridge › Settings › Copy Chrome pairing code</em>) or from
+      <code>scripts/&lt;os&gt;/pairing-code</code>.</p>
+    <textarea id="code" rows="3" placeholder="127.0.0.1:7878#…" spellcheck="false"></textarea>
+    <button id="pair">Pair</button>
+  </section>
+
+  <section id="tab" hidden>
+    <div class="label">This tab</div>
+    <div id="tab-title" class="title"></div>
+    <div id="tab-url" class="url"></div>
+    <div id="share-options">
+      <label><input type="checkbox" id="agents" checked> Let AI agents (MCP) use this tab</label>
+      <label id="approve-row" hidden><input type="checkbox" id="approve"> Allow tools to read this site
+        <span class="warn">It isn't a local development host. Only allow sites you are comfortable sharing.</span></label>
+      <button id="share">Share this tab</button>
+    </div>
+    <div id="shared-info" hidden>
+      <div>Shared as <code id="session"></code></div>
+      <button id="unshare" class="secondary">Stop sharing</button>
+    </div>
+  </section>
+
+  <section id="list" hidden>
+    <div class="label">Shared tabs</div>
+    <ul id="shared"></ul>
+  </section>
+
+  <p id="error" class="error" hidden></p>
+  <footer>
+    <span id="state"></span>
+    <a href="#" id="repair">Re-pair</a> · <a href="#" id="reconnect">Reconnect</a>
+  </footer>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

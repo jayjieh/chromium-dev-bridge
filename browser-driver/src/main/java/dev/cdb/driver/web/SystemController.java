@@ -28,10 +28,18 @@ import org.springframework.web.bind.annotation.RestController;
 public class SystemController {
     static final String VERSION = "0.1.0";
     private final SessionManager sessions;
+    private final dev.cdb.provider.extension.ExtensionHub extensions;
     private volatile List<String> discovered;
 
-    public SystemController(SessionManager sessions) {
+    public SystemController(SessionManager sessions, dev.cdb.provider.extension.ExtensionHub extensions) {
         this.sessions = sessions;
+        this.extensions = extensions;
+    }
+
+    @GetMapping("/extensions")
+    public List<dev.cdb.provider.extension.ExtensionHub.ConnectionStatus> extensions(Principal principal) {
+        principal.requireAdmin("Listing Chrome extension connections");
+        return extensions.status();
     }
 
     @GetMapping("/health")

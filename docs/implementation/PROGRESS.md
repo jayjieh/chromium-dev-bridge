@@ -49,6 +49,17 @@ Last updated: 2026-11-24. Verified on Windows 11, JDK 21.0.9, Maven 3.8.1, Node 
 - [x] Claude Code, Codex and Cursor configurations; integration guides
 - [x] AI-driven login validation proven by `McpEndToEndTest`
 
+## Your own Chrome (added 2026-11-24)
+- [x] Chrome extension (MV3, `chrome-extension/`): pairing, per-tab sharing, agent-access choice, origin approval, CDP allowlist, badge, reconnect
+- [x] `extension-provider`: hub + raw-CDP session driver (navigation, waits, actions with real input events, snapshots, inspect, a11y, screenshots, console, network, source maps via core)
+- [x] Driver endpoint `/api/v1/extension` (origin + persisted pairing token), `GET /api/v1/extensions`
+- [x] Read gating on non-allowed origins for shared tabs
+- [x] Quick attach reuses the running Chrome's tabs; `start-chrome-debug` scripts; IDE *Attach to Chrome…*
+- [x] IDE: *Copy Chrome pairing code*, Browser column in Sessions
+- [x] Tests: unit (keys, CDP translation, hub protocol), CDP driver vs real Chromium, real extension e2e (pair → share → drive → unshare), quick attach
+- [ ] Manual check with the extension in a headed, everyday Chrome (automated tests use Playwright's Chromium in headless mode)
+- [ ] Response bodies for shared tabs (`cdb.capture.bodies` is ignored by the extension provider)
+
 ## Phase 5 — Advanced (partially done)
 - [x] Visual regression (baselines, thresholds, diff images)
 - [x] Declarative JSON scenarios (assertions, `${TEST_*}` substitution, fixtures, per-step timeouts, failure screenshots, reports)

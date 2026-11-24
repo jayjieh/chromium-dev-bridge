@@ -42,6 +42,7 @@ public final class ManagedSession {
     private volatile String failureReason;
     private volatile BrowserSessionDriver driver;
     private volatile SessionLaunchSpec spec;
+    private volatile dev.cdb.core.spi.SessionOpener opener;
     private volatile ProviderInfo providerInfo;
     private volatile Viewport viewport;
     private volatile String currentUrl;
@@ -82,6 +83,8 @@ public final class ManagedSession {
 
     void driver(BrowserSessionDriver d) { this.driver = d; }
     void spec(SessionLaunchSpec s) { this.spec = s; }
+    dev.cdb.core.spi.SessionOpener opener() { return opener; }
+    void opener(dev.cdb.core.spi.SessionOpener o) { this.opener = o; }
     void providerInfo(ProviderInfo p) { this.providerInfo = p; }
     void viewport(Viewport v) { this.viewport = v; }
     void currentUrl(String url) { if (url != null) this.currentUrl = url; }

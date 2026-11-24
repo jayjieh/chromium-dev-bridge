@@ -570,6 +570,37 @@ paths:
               schema: { $ref: '#/components/schemas/ApprovalInfo' }
         default: { $ref: '#/components/responses/Problem' }
 
+  /api/v1/extensions:
+    get:
+      tags: [system]
+      operationId: listExtensions
+      description: Connected Chromium Developer Bridge Chrome extensions and the tabs they share (admin scope).
+      responses:
+        '200':
+          description: Extension connections
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    connectionId: { type: string }
+                    extensionVersion: { type: string }
+                    browser: { type: [string, 'null'] }
+                    sharedTabs: { type: array, items: { type: integer } }
+        default: { $ref: '#/components/responses/Problem' }
+  /api/v1/extension:
+    get:
+      tags: [system]
+      operationId: extensionSocket
+      security: []
+      description: |
+        WebSocket endpoint for the Chrome extension (JSON-RPC 2.0, see docs/implementation/CHROME_EXTENSION.md).
+        Requires a chrome-extension:// Origin and the pairing token as sub-protocol: `Sec-WebSocket-Protocol: cdb-ext, <token>`.
+      responses:
+        '101': { description: Switching protocols }
+        default: { $ref: '#/components/responses/Problem' }
   /api/v1/events:
     get:
       tags: [system]

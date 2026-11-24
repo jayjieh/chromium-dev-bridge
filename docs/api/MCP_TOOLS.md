@@ -27,6 +27,9 @@ Server name `chromium-dev-bridge`, stdio transport, protocol versions `2025-11-2
 Locator object: `{ role, name, exact, testId, label, placeholder, text, css, xpath, nth }`. Prefer snapshot `ref`s,
 then role + name, test id, label, text; CSS and XPath are last resorts.
 
+Tabs the user shares from their own Chrome (extension) show up in `browser_list_sessions` when the user allowed agent
+access; all tools work on them except opening new tabs.
+
 ## Safety properties
 
 * The MCP server authenticates with the **agent token**: it can't grant approvals, can't evaluate JavaScript, and

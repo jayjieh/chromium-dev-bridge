@@ -1,7 +1,7 @@
 // Chromium Developer Bridge page helpers. Evaluated in the page's main world on demand.
 // Returns an object with snapshot/inspect/audit functions. Never returns values of sensitive fields.
 (() => {
-  if (window.__cdbHelpers && window.__cdbHelpers.version === 1) return window.__cdbHelpers;
+  if (window.__cdbHelpers && window.__cdbHelpers.version === 2) return window.__cdbHelpers;
 
   const refs = (() => {
     if (!window.__cdbRefs) {
@@ -340,7 +340,180 @@
     return issues;
   }
 
-  const helpers = { version: 1, snapshot, inspect, audit };
+  // ---------------------------------------------------------------- locators and actions (CDP providers)
+
+  function deepAll(root) {
+    const out = [];
+    const walk = (node) => {
+      for (const c of node.children || []) {
+        out.push(c);
+        if (c.shadowRoot) walk(c.shadowRoot);
+        walk(c);
+      }
+    };
+    walk(root);
+    return out;
+  }
+
+  function norm(s) {
+    return (s == null ? '' : String(s)).replace(/\s+/g, ' ').trim();
+  }
+
+  function textMatches(actual, expected, exact) {
+    const a = norm(actual);
+    const e = norm(expected);
+    return exact ? a === e : a.toLowerCase().includes(e.toLowerCase());
+  }
+
+  function labelOf(el) {
+    return norm([labelText(el), el.getAttribute && el.getAttribute('aria-label'), (() => {
+      const by = el.getAttribute && el.getAttribute('aria-labelledby');
+      return by ? by.split(/\s+/).map(id => document.getElementById(id)).filter(Boolean).map(n => n.textContent).join(' ') : '';
+    })()].filter(Boolean).join(' '));
+  }
+
+  /** Elements matching a locator (same resolution order as the Playwright provider). */
+  function candidates(loc) {
+    if (loc.ref) {
+      const w = refs.byRef.get(loc.ref);
+      const el = w && (w.deref ? w.deref() : w);
+      return el && el.isConnected ? [el] : [];
+    }
+    const all = deepAll(document);
+    if (loc.role) {
+      const r = loc.role.toLowerCase();
+      return all.filter(el => (role(el) || '').toLowerCase() === r
+        && (loc.name == null || textMatches(accessibleName(el) || '', loc.name, loc.exact)));
+    }
+    if (loc.testId) return all.filter(el => el.getAttribute('data-testid') === loc.testId);
+    if (loc.label) {
+      return all.filter(el => (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement
+        || el instanceof HTMLSelectElement || el.getAttribute('role') || el.isContentEditable)
+        && textMatches(labelOf(el), loc.label, loc.exact) && labelOf(el) !== '');
+    }
+    if (loc.placeholder) return all.filter(el => el.hasAttribute('placeholder') && textMatches(el.getAttribute('placeholder'), loc.placeholder, loc.exact));
+    if (loc.text) {
+      const hits = all.filter(el => !SKIP.has(el.tagName) && textMatches(el.textContent, loc.text, loc.exact));
+      // Keep the innermost matches only.
+      return hits.filter(el => !hits.some(other => other !== el && el.contains(other)));
+    }
+    if (loc.css) return Array.from(document.querySelectorAll(loc.css));
+    if (loc.xpath) {
+      const r = document.evaluate(loc.xpath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+      const out = [];
+      for (let i = 0; i < r.snapshotLength; i++) if (r.snapshotItem(i).nodeType === 1) out.push(r.snapshotItem(i));
+      return out;
+    }
+    return [];
+  }
+
+  function pick(loc) {
+    const els = candidates(loc);
+    if (loc.nth != null) return { count: els[loc.nth] ? 1 : 0, total: els.length, el: els[loc.nth] || null };
+    return { count: els.length, total: els.length, el: els.length === 1 ? els[0] : null };
+  }
+
+  /** Resolves a locator; for a single match scrolls it into view and returns its centre and state. */
+  function target(loc, scroll) {
+    const p = pick(loc);
+    if (!p.el) return { count: p.count, total: p.total };
+    const el = p.el;
+    if (scroll !== false) {
+      const r0 = el.getBoundingClientRect();
+      if (r0.top < 0 || r0.left < 0 || r0.bottom > innerHeight || r0.right > innerWidth) el.scrollIntoView({ block: 'center', inline: 'center' });
+    }
+    const r = el.getBoundingClientRect();
+    const x = r.left + r.width / 2;
+    const y = r.top + r.height / 2;
+    const hit = document.elementFromPoint(x, y);
+    return {
+      count: 1, total: p.total, ref: refFor(el), x, y, visible: visible(el), enabled: !disabled(el),
+      editable: el.isContentEditable || ((el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) && !el.readOnly && !el.disabled),
+      checked: checked(el), obscured: !!hit && hit !== el && !el.contains(hit) && !(hit.shadowRoot && hit.shadowRoot.contains(el)),
+      tag: el.tagName.toLowerCase(), sensitive: isSensitive(el)
+    };
+  }
+
+  function element(loc) {
+    const p = pick(loc);
+    if (!p.el) throw new Error(p.count === 0 ? 'No element matches the locator' : 'Locator matched ' + p.count + ' elements');
+    return p.el;
+  }
+
+  function setValue(el, value) {
+    el.focus();
+    if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+      const proto = el instanceof HTMLInputElement ? HTMLInputElement.prototype : HTMLTextAreaElement.prototype;
+      Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, value);
+    } else if (el.isContentEditable) {
+      el.textContent = value;
+    } else {
+      throw new Error('Element is not editable: ' + el.tagName.toLowerCase());
+    }
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
+  }
+
+  function fill(loc, value) { return setValue(element(loc), value); }
+
+  function selectOptions(loc, values) {
+    const el = element(loc);
+    if (!(el instanceof HTMLSelectElement)) throw new Error('Element is not a <select>');
+    const wanted = values.map(norm);
+    const matched = [];
+    for (const o of el.options) {
+      const hit = wanted.includes(norm(o.value)) || wanted.includes(norm(o.label)) || wanted.includes(norm(o.textContent));
+      if (el.multiple) o.selected = hit;
+      if (hit) { matched.push(o.value); if (!el.multiple) { el.value = o.value; break; } }
+    }
+    if (!matched.length) throw new Error('No option matches ' + JSON.stringify(values));
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+    return matched;
+  }
+
+  function focusEl(loc) { const el = element(loc); el.focus(); return document.activeElement === el; }
+
+  function getText(loc) { return element(loc).innerText; }
+
+  function getAttr(loc, name) {
+    const el = element(loc);
+    if (name.toLowerCase() === 'value') return isSensitive(el) ? '[REDACTED]' : (el.value != null ? String(el.value) : el.getAttribute('value'));
+    return el.getAttribute(name);
+  }
+
+  function isVisible(loc) {
+    const els = candidates(loc);
+    const el = loc.nth != null ? els[loc.nth] : els[0];
+    return !!el && visible(el);
+  }
+
+  function scrollEl(loc, dx, dy) {
+    if (loc) {
+      const el = element(loc);
+      el.scrollIntoView({ block: 'center' });
+      if (dx || dy) el.scrollBy(dx || 0, dy || 0);
+    } else {
+      window.scrollBy(dx || 0, (dx || dy) ? (dy || 0) : 500);
+    }
+    return { x: Math.round(scrollX), y: Math.round(scrollY) };
+  }
+
+  /** ARIA-style outline (indented "- role "name"" lines) for providers without Playwright's ariaSnapshot. */
+  function ariaOutline(rootSelector) {
+    const s = snapshot({ mode: 'COMPACT', root: rootSelector, maxElements: 2000 });
+    return s.elements.filter(e => e.role || e.text).map(e => '  '.repeat(e.depth) + '- ' + (e.role || 'text')
+      + (e.name ? ' "' + e.name + '"' : (e.text ? ': ' + e.text : '')) + (e.checked === true ? ' [checked]' : '')
+      + (e.disabled ? ' [disabled]' : '')).join('\n');
+  }
+
+  function pageState() {
+    return { url: location.href, title: document.title, readyState: document.readyState };
+  }
+
+  const helpers = { version: 2, snapshot, inspect, audit, target, fill, selectOptions, focusEl, getText, getAttr,
+    isVisible, scrollEl, ariaOutline, pageState, element, candidates };
   Object.defineProperty(window, '__cdbHelpers', { value: helpers, enumerable: false, configurable: true });
   return helpers;
 })()

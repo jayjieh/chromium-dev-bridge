@@ -27,7 +27,7 @@ import javax.swing.table.DefaultTableModel
  */
 class SessionsPanel(private val project: Project, parent: Disposable) : JPanel(BorderLayout()) {
     private val bridge = ProjectBridge.get(project)
-    private val model = object : DefaultTableModel(arrayOf("Session", "State", "Owner", "Project", "URL", "Agents"), 0) {
+    private val model = object : DefaultTableModel(arrayOf("Session", "State", "Browser", "Owner", "Project", "URL", "Agents"), 0) {
         override fun isCellEditable(row: Int, column: Int) = false
     }
     private val table = JBTable(model)
@@ -36,6 +36,10 @@ class SessionsPanel(private val project: Project, parent: Disposable) : JPanel(B
     init {
         val toolbar = JPanel(FlowLayout(FlowLayout.LEFT))
         toolbar.add(JButton("New").apply { addActionListener { create() } })
+        toolbar.add(JButton("Attach to Chrome…").apply {
+            toolTipText = "Attach to a Chrome started with --remote-debugging-port (scripts/<os>/start-chrome-debug)"
+            addActionListener { attachChrome() }
+        })
         toolbar.add(JButton("Inspect").apply { addActionListener { selected()?.let { bridge.select(it.sessionId()) } } })
         toolbar.add(JButton("Restart").apply { addActionListener { act { id -> DriverService.get().client().restartSession(id) } } })
         toolbar.add(JButton("Close").apply { addActionListener { act { id -> DriverService.get().client().closeSession(id) } } })
@@ -63,7 +67,8 @@ class SessionsPanel(private val project: Project, parent: Disposable) : JPanel(B
             model.rowCount = 0
             list.forEach {
                 model.addRow(arrayOf(
-                    (if (it.sessionId() == bridge.selectedSessionId) "▶ " else "") + it.sessionId(), it.state(), it.owner(),
+                    (if (it.sessionId() == bridge.selectedSessionId) "▶ " else "") + it.sessionId(), it.state(),
+                    it.provider()?.name() ?: "", it.owner(),
                     it.projectId() ?: "", it.currentUrl() ?: "", if (it.agentAccess() || it.owner().startsWith("agent:")) "yes" else "no"
                 ))
             }
@@ -73,6 +78,22 @@ class SessionsPanel(private val project: Project, parent: Disposable) : JPanel(B
 
     private fun create() {
         background({ bridge.createSession(null) }, { notify(project, describe(it), NotificationType.ERROR) }) {
+            bridge.select(it.sessionId())
+            reload()
+        }
+    }
+
+    private fun attachChrome() {
+        val endpoint = Messages.showInputDialog(project,
+            "Remote debugging endpoint of a Chrome you started with a dedicated profile " +
+                "(scripts/<os>/start-chrome-debug). Only loopback addresses are accepted.",
+            "Attach to Chrome", null, "http://127.0.0.1:9222", null) ?: return
+        background({
+            DriverService.get().client().createSession(dev.cdb.protocol.SessionCreateRequest.builder().projectId(bridge.projectId)
+                .label("Attached Chrome").connectEndpoint(endpoint.trim())
+                .agentAccess(dev.cdb.intellij.CdbSettings.get().state.shareSessionsWithAgents).build())
+        }, { notify(project, describe(it), NotificationType.ERROR) }) {
+            bridge.attachEvents()
             bridge.select(it.sessionId())
             reload()
         }

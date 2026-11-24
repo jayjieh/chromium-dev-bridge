@@ -30,6 +30,18 @@ class SettingsPanel(private val project: Project) : JPanel() {
             }
         })
         row.add(JButton("Disconnect").apply { addActionListener { DriverService.get().disconnect(); info.text = "Disconnected" } })
+        row.add(JButton("Copy Chrome pairing code").apply {
+            toolTipText = "Paste into the Chromium Developer Bridge Chrome extension to share tabs from your own Chrome"
+            addActionListener {
+                val code = dev.cdb.client.ConnectionFiles.read(DriverService.get().connectionFile()).orElse(null)?.extensionPairingCode()
+                if (code == null) {
+                    info.text = "Start the driver first (no pairing code available)"
+                } else {
+                    com.intellij.openapi.ide.CopyPasteManager.getInstance().setContents(java.awt.datatransfer.StringSelection(code))
+                    info.text = "Pairing code copied. Paste it into the extension popup in Chrome."
+                }
+            }
+        })
         row.add(JButton("Open settings…").apply {
             addActionListener { ShowSettingsUtil.getInstance().showSettingsDialog(project, CdbConfigurable::class.java) }
         })

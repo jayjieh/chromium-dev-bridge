@@ -30,6 +30,8 @@ flowchart LR
 | `shared-protocol` | Java library | Wire contract: DTOs, enums, event types, error codes. Jackson-annotated, no Spring. |
 | `browser-core` | Java library | Provider SPI (`BrowserProvider`, `BrowserSessionDriver`), session manager, lifecycle state machine, URL/action security policy, redaction, bounded event buffers, event bus, source-map resolver, visual diff, scenario runner. No Spring, no Playwright. |
 | `playwright-provider` | Java library | Default provider built on Playwright for Java: worker threads, Chromium launch, attach over CDP (localhost only), local browser discovery, DOM snapshot script, console/network capture. |
+| `extension-provider` | Java library | Sessions for tabs the user shares from their own Chrome through the extension: connection hub (JSON-RPC over WebSocket) and a raw-CDP `BrowserSessionDriver`. See [ADR-0006](../adr/0006-chrome-extension-provider.md). |
+| `chrome-extension` | Chrome MV3 extension | Pairs with the driver, shares tabs on explicit user action, relays allowlisted CDP via `chrome.debugger`. |
 | `browser-api` | Java library | Typed Java client for the driver REST API plus the connection-file reader. Used by the MCP server and the integration tests. |
 | `browser-driver` | Spring Boot app | REST controllers, WebSocket JSON-RPC event stream, authentication, origin/host validation, rate limiting, size limits, audit log, Actuator/Micrometer. |
 | `mcp-server` | Java app (shaded jar) | MCP stdio server exposing 17 browser tools; thin client of the driver. |

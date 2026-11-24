@@ -14,6 +14,8 @@ AI agent ──MCP stdio──► MCP server ─┘
   redacted network capture, screenshots, visual diffs, declarative test scenarios. REST + WebSocket API
   ([OpenAPI](docs/api/OPENAPI.yaml)).
 * **MCP server**: 17 browser tools for AI agents, with untrusted-content markers and prompt-injection flags.
+* **Your own Chrome**: share individual tabs from your everyday Chrome with the bundled extension, or attach to a
+  debug-profile Chrome ([CHROME_EXTENSION.md](docs/implementation/CHROME_EXTENSION.md)).
 * **IntelliJ plugin**: Browser preview, Elements, Console (click to open the source), Network with a waterfall,
   Screenshots, AI Agent setup, Sessions and approvals, and Settings.
 
@@ -51,6 +53,8 @@ The details are in [INSTALLATION.md](docs/implementation/INSTALLATION.md),
 | `shared-protocol/` | DTOs, events, error codes (wire contract) |
 | `browser-core/` | Provider SPI, sessions, security policy, redaction, buffers, source maps, visual diff, scenarios |
 | `playwright-provider/` | Playwright Chromium provider (launch, CDP attach on loopback, discovery) |
+| `extension-provider/` | Sessions for tabs shared from your own Chrome (CDP via the extension) |
+| `chrome-extension/` | Chrome extension (Manifest V3) |
 | `browser-api/` | Java client for the driver API |
 | `browser-driver/` | Spring Boot driver service |
 | `mcp-server/` | MCP stdio server |

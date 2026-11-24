@@ -10,6 +10,11 @@
   ownership.
 * `GET /api/v1/health` and `/actuator/health` are the only unauthenticated endpoints.
 
+* A third token, the **extension pairing token**, is only valid on `/api/v1/extension`, together with a
+  `chrome-extension://` origin. It is persisted (`~/.chromium-dev-bridge/extension-token`, owner-only) so users pair
+  Chrome once. Sessions created from shared tabs belong to `admin` (the human); agents see them only if the user
+  allowed it when sharing.
+
 ## Request filtering (`SecurityFilter`, first in the chain)
 1. Correlation id (`X-Correlation-Id`, generated if absent) → MDC and response header.
 2. Host header must be in `cdb.security.allowed-host-headers` (DNS rebinding protection).
@@ -28,6 +33,13 @@
   separate browser process.
 * **Downloads** off by default; **JS evaluation** off by default (`allow-evaluate`), admin + `EVALUATE` approval.
 * The user's personal browser profile is never used.
+
+## The user's own Chrome
+* Extension: per-tab explicit sharing; Chrome's debugging infobar; reads refused on non-allowed origins; captured
+  events dropped on non-allowed origins; CDP command allowlist in the extension (no cookie/storage access);
+  disconnect closes the sessions. See [CHROME_EXTENSION.md](../implementation/CHROME_EXTENSION.md).
+* Quick attach: admin token only, loopback endpoint only, intended for a dedicated debug profile (Chrome refuses
+  remote debugging on the default profile); closing the session never closes the user's tabs.
 
 ## Data protection
 | Data | Handling |

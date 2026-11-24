@@ -130,6 +130,31 @@ public class SessionManager implements AutoCloseable {
         return s.info();
     }
 
+    /**
+     * Registers a session whose browser side is opened by {@code opener} (e.g. a tab the user shared from their own
+     * Chrome through the extension). Same security policy, buffers and events as provider sessions.
+     */
+    public SessionInfo attach(Principal principal, String label, String projectId, boolean agentAccess, Duration idleTimeout,
+                              dev.cdb.core.spi.SessionOpener opener) {
+        if (closed) throw new BridgeException(ErrorCode.SESSION_NOT_RUNNING, "Driver is shutting down");
+        long active = sessions.values().stream().filter(s -> !s.state().isTerminal() && s.state() != SessionState.FAILED).count();
+        if (active >= settings.maxSessions()) {
+            throw new BridgeException(ErrorCode.LIMIT_EXCEEDED, "Maximum number of sessions (" + settings.maxSessions() + ") reached");
+        }
+        String id = "session-" + UUID.randomUUID().toString().substring(0, 8);
+        ManagedSession s = new ManagedSession(id, projectId, label, principal.name(), principal.isAdmin() && agentAccess, clock.now(),
+                idleTimeout == null ? settings.idleTimeout() : idleTimeout, settings.consoleBufferSize(), settings.networkBufferSize(),
+                settings.defaultViewport());
+        s.spec(new SessionLaunchSpec(id, false, settings.defaultViewport(), null, null, null, SessionIsolation.SHARED, null, null,
+                null, null, false, url -> urlPolicy.isAllowed(url, s.approvedOrigins()), settings.operationTimeout(),
+                settings.navigationTimeout(), settings.captureBodies(), settings.maxBodyBytes()));
+        s.opener(opener);
+        sessions.put(id, s);
+        audit.record(principal, "session.attach", id, "requested", Map.of("label", label == null ? "" : label));
+        start(s, false);
+        return s.info();
+    }
+
     private void start(ManagedSession s, boolean restart) {
         Instant t0 = clock.now();
         changeState(s, SessionState.STARTING);
@@ -139,7 +164,7 @@ public class SessionManager implements AutoCloseable {
                 d = s.driver();
                 d.restart();
             } else {
-                d = provider.open(s.spec(), new Listener(s));
+                d = (s.opener() != null ? s.opener() : (dev.cdb.core.spi.SessionOpener) provider::open).open(s.spec(), new Listener(s));
                 s.driver(d);
             }
             s.providerInfo(d.providerInfo());

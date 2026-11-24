@@ -24,6 +24,19 @@ The core talks to browsers through `dev.cdb.core.spi`:
 | Screenshots | `page/locator.screenshot` with masks over sensitive inputs |
 | Discovery | Chrome, Edge, Chromium and the Playwright cache on Windows, macOS, Linux |
 
+## Chrome extension provider (your own Chrome)
+
+`extension-provider` turns tabs the user shares from the Chromium Developer Bridge extension into sessions
+(`SessionManager.attach` with a `SessionOpener`). Each session drives one tab with raw CDP relayed by
+`chrome.debugger`: navigation via `Page.*`, element location and actions via the shared page helper script
+(`browser-core/src/main/resources/cdb/page-helpers.js`) plus real `Input.dispatchMouseEvent/KeyEvent` events, console
+and network from `Runtime`/`Log`/`Network` events, screenshots via `Page.captureScreenshot`. Reads and captured data
+are limited to allowed origins. Details: [CHROME_EXTENSION.md](../implementation/CHROME_EXTENSION.md),
+[ADR-0006](../adr/0006-chrome-extension-provider.md).
+
+Quick attach (`connectEndpoint`) uses the Playwright provider with the browser's existing default context, so the
+tabs already open in that Chrome are visible; closing the session disconnects without closing them.
+
 ## JCEF (IntelliJ embedded browser)
 
 Assessed and not used for automation; see [ADR-0001](../adr/0001-external-managed-chromium-as-primary-browser.md).

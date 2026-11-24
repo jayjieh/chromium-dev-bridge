@@ -88,6 +88,10 @@ cdb:
     admin-token:
     agent-token:
     connection-file: ${cdb.data-dir}/driver.json
+    # Chrome extension: pin allowed extension ids (empty = any extension holding the pairing token)
+    extension-ids: []
+    # Let the user approve the shared page's origin from the extension popup
+    extension-can-approve: true
   audit:
     enabled: true
     retention-days: 14

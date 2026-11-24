@@ -22,6 +22,7 @@
         <module>shared-protocol</module>
         <module>browser-core</module>
         <module>playwright-provider</module>
+        <module>extension-provider</module>
         <module>browser-api</module>
         <module>browser-driver</module>
         <module>mcp-server</module>
@@ -51,6 +52,11 @@
             <dependency>
                 <groupId>dev.cdb</groupId>
                 <artifactId>playwright-provider</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>dev.cdb</groupId>
+                <artifactId>extension-provider</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

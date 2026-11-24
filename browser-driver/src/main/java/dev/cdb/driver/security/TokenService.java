@@ -19,7 +19,12 @@ public class TokenService {
     private final String adminToken;
     private final String agentToken;
 
+    private final String extensionToken;
+    private final byte[] extension;
+
     public TokenService(CdbProperties props) {
+        this.extensionToken = persistentExtensionToken(props.dataDir().resolve("extension-token"));
+        this.extension = extensionToken.getBytes(StandardCharsets.UTF_8);
         this.adminToken = valueOrRandom(props.security().adminToken());
         this.agentToken = valueOrRandom(props.security().agentToken());
         if (adminToken.equals(agentToken)) throw new IllegalStateException("admin and agent tokens must differ");
@@ -46,8 +51,38 @@ public class TokenService {
         return Optional.empty();
     }
 
+    /**
+     * The extension pairing token survives restarts (stored owner-only in the data dir) so users pair Chrome once.
+     * Delete the file to rotate it.
+     */
+    static String persistentExtensionToken(java.nio.file.Path file) {
+        try {
+            if (java.nio.file.Files.isRegularFile(file)) {
+                String t = java.nio.file.Files.readString(file).trim();
+                if (t.length() >= 32) return t;
+            }
+            java.nio.file.Files.createDirectories(file.getParent());
+            String t = valueOrRandom(null);
+            java.nio.file.Files.writeString(file, t);
+            ConnectionFileWriter.restrictToOwner(file);
+            return t;
+        } catch (java.io.IOException e) {
+            throw new IllegalStateException("Cannot create extension token at " + file + ": " + e.getMessage(), e);
+        }
+    }
+
+    /** Constant-time check of a token presented by the Chrome extension. */
+    public boolean isExtensionToken(String token) {
+        return token != null && MessageDigest.isEqual(token.getBytes(StandardCharsets.UTF_8), extension);
+    }
+
+    public String extensionToken() {
+        return extensionToken;
+    }
+
     public ConnectionInfo connectionInfo(String baseUrl, int port, String version) {
-        return new ConnectionInfo(baseUrl, port, adminToken, agentToken, ProcessHandle.current().pid(), java.time.Instant.now(), version);
+        return new ConnectionInfo(baseUrl, port, adminToken, agentToken, ProcessHandle.current().pid(), java.time.Instant.now(), version,
+                extensionToken);
     }
 
     public String adminToken() {

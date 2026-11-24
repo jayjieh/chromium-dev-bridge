@@ -55,6 +55,8 @@ public class EventStreamHandler extends TextWebSocketHandler {
         return t;
     });
     private AutoCloseable subscription;
+    @org.springframework.beans.factory.annotation.Value("${cdb.security.max-websocket-message-bytes:65536}")
+    private int maxMessageBytes = 65536;
 
     public EventStreamHandler(EventBus bus, SessionManager sessions, ObjectMapper mapper, MicrometerDriverMetrics metrics) {
         this.bus = bus;
@@ -162,6 +164,10 @@ public class EventStreamHandler extends TextWebSocketHandler {
     protected void handleTextMessage(WebSocketSession session, TextMessage message) {
         Connection c = connections.get(session.getId());
         if (c == null) return;
+        if (message.getPayloadLength() > maxMessageBytes) {
+            c.send(error(null, -32600, "Message too large"));
+            return;
+        }
         JsonNode req;
         try {
             req = mapper.readTree(message.getPayload());

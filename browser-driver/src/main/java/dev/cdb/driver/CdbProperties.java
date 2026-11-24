@@ -27,7 +27,8 @@ public record CdbProperties(Path dataDir, Browser browser, Sessions sessions, Ca
     public record Security(List<String> allowedHosts, boolean allowFileUrls, boolean allowEvaluate, boolean acceptDownloads,
                            boolean enforceNavigationGuard, List<String> allowedOrigins, List<String> allowedHostHeaders,
                            int rateLimitPerSecond, int rateLimitBurst, long maxRequestBytes, int maxWebsocketMessageBytes,
-                           String adminToken, String agentToken, Path connectionFile) {
+                           String adminToken, String agentToken, Path connectionFile,
+                           List<String> extensionIds, boolean extensionCanApprove) {
     }
 
     public record Audit(boolean enabled, int retentionDays) {

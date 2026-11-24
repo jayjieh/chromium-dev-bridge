@@ -72,6 +72,24 @@ public class SecurityFilter extends OncePerRequestFilter {
                 return;
             }
             String origin = req.getHeader("Origin");
+            if (req.getRequestURI().equals(EXTENSION_PATH)) {
+                // Chrome extension endpoint: only chrome-extension:// origins holding the pairing token (sent as a
+                // WebSocket sub-protocol because browsers cannot set Authorization headers on WebSockets).
+                if (!extensionOriginAllowed(origin)) {
+                    problem(res, ErrorCode.ACCESS_DENIED, "Only the Chromium Developer Bridge extension may use this endpoint", corr);
+                    return;
+                }
+                if (!tokens.isExtensionToken(extensionToken(req.getHeader("Sec-WebSocket-Protocol")))) {
+                    problem(res, ErrorCode.UNAUTHENTICATED, "Invalid pairing token; pair the extension again", corr);
+                    return;
+                }
+                if (!limiter.tryAcquire("extension")) {
+                    problem(res, ErrorCode.RATE_LIMITED, "Too many requests", corr);
+                    return;
+                }
+                chain.doFilter(req, res);
+                return;
+            }
             if (origin != null && !config.allowedOrigins().contains(origin)) {
                 problem(res, ErrorCode.ACCESS_DENIED, "Cross-origin requests are not allowed", corr);
                 return;
@@ -109,6 +127,23 @@ public class SecurityFilter extends OncePerRequestFilter {
             MDC.remove("correlationId");
             MDC.remove("sessionId");
         }
+    }
+
+    public static final String EXTENSION_PATH = "/api/v1/extension";
+    public static final String EXTENSION_PROTOCOL = "cdb-ext";
+
+    boolean extensionOriginAllowed(String origin) {
+        if (origin == null || !origin.startsWith("chrome-extension://")) return false;
+        List<String> ids = config.extensionIds();
+        return ids == null || ids.isEmpty() || ids.contains(origin.substring("chrome-extension://".length()));
+    }
+
+    /** "cdb-ext, <token>" -> token. */
+    static String extensionToken(String protocols) {
+        if (protocols == null) return null;
+        String[] parts = protocols.split(",");
+        if (parts.length != 2 || !parts[0].trim().equals(EXTENSION_PROTOCOL)) return null;
+        return parts[1].trim();
     }
 
     public boolean hostAllowed(String host) {

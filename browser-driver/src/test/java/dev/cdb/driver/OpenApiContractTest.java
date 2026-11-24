@@ -36,7 +36,8 @@ class OpenApiContractTest {
             paths.forEach((path, ops) -> ops.keySet().stream().filter(HTTP::contains)
                     .forEach(m -> documented.add(m.toUpperCase() + " " + path)));
         }
-        documented.remove("GET /api/v1/events"); // WebSocket upgrade, not an MVC handler
+        documented.remove("GET /api/v1/events"); // WebSocket upgrades, not MVC handlers
+        documented.remove("GET /api/v1/extension");
 
         Set<String> implemented = new TreeSet<>();
         for (RequestMappingInfo info : mapping.getHandlerMethods().keySet()) {
