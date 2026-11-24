@@ -38,6 +38,8 @@ class ConsolePanel(private val project: Project, parent: Disposable) : JPanel(Bo
     private val level = JComboBox<Any>(arrayOf<Any>("All levels", *ConsoleLevel.entries.toTypedArray()))
     private val search = JBTextField().apply { emptyText.text = "Search"; columns = 16 }
     private val maxEntries = 5000
+    private val shown = HashSet<String>()
+    private val reloadTimer = javax.swing.Timer(300) { reload() }.apply { isRepeats = false }
 
     /** A stack frame line shown under its entry. */
     data class FrameRow(val label: String, val location: SourceLocation)
@@ -47,7 +49,7 @@ class ConsolePanel(private val project: Project, parent: Disposable) : JPanel(Bo
         toolbar.add(level)
         toolbar.add(search)
         toolbar.add(JButton("Reload").apply { addActionListener { reload() } })
-        toolbar.add(JButton("Clear").also { b -> b.addActionListener { this@ConsolePanel.model.clear() } })
+        toolbar.add(JButton("Clear").also { b -> b.addActionListener { this@ConsolePanel.model.clear(); shown.clear() } })
         add(toolbar, BorderLayout.NORTH)
         add(JBScrollPane(list), BorderLayout.CENTER)
         list.cellRenderer = Renderer()
@@ -59,7 +61,7 @@ class ConsolePanel(private val project: Project, parent: Disposable) : JPanel(Bo
                     is FrameRow -> v.location
                     else -> null
                 } ?: return
-                if (!SourceNavigator.open(project, loc)) {
+                SourceNavigator.navigate(project, loc) {
                     dev.cdb.intellij.notify(project, "No project file matches ${loc.file() ?: loc.url()}")
                 }
             }
@@ -71,7 +73,11 @@ class ConsolePanel(private val project: Project, parent: Disposable) : JPanel(Bo
             val entries = events.filter { it.type == "browser.console.message" || it.type == "browser.console.error" }
                 .mapNotNull { runCatching { Json.mapper().treeToValue(it.data, ConsoleEntry::class.java) }.getOrNull() }
                 .filter { accepts(it) }
-            if (entries.isNotEmpty()) SwingUtilities.invokeLater { entries.forEach { append(it) } }
+            if (entries.isNotEmpty()) SwingUtilities.invokeLater {
+                var updated = false
+                entries.forEach { e -> if (!shown.add(e.eventId())) updated = true else append(e) }
+                if (updated) reloadTimer.restart() // source-mapped update of an entry already shown
+            }
         }
     }
 
@@ -97,7 +103,8 @@ class ConsolePanel(private val project: Project, parent: Disposable) : JPanel(Bo
         val q = ConsoleQuery(null, level.selectedItem as? ConsoleLevel, null, search.text.trim().ifBlank { null }, null, null, 1000)
         background({ DriverService.get().client().console(id, q) }) { page ->
             model.clear()
-            page.items().forEach { append(it) }
+            shown.clear()
+            page.items().forEach { shown.add(it.eventId()); append(it) }
         }
     }
 

@@ -18,7 +18,7 @@ class SettingsPanel(private val project: Project) : JPanel() {
     private val info = JBLabel()
 
     init {
-        layout = BoxLayout(this, BoxLayout.Y_AXIS)
+        layout = com.intellij.ui.components.panels.VerticalLayout(4)
         val row = JPanel(FlowLayout(FlowLayout.LEFT))
         row.add(JButton("Connect / start driver").apply {
             addActionListener {
@@ -39,5 +39,6 @@ class SettingsPanel(private val project: Project) : JPanel() {
             add(JBLabel("Connection file: ${DriverService.get().connectionFile()}"))
         })
         info.text = "Status: ${DriverService.get().status}"
+        DriverService.get().addStatusListener(project) { s, detail -> info.text = "Status: $s" + (detail?.let { " — $it" } ?: "") }
     }
 }

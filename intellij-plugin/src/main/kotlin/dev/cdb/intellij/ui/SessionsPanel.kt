@@ -51,6 +51,7 @@ class SessionsPanel(private val project: Project, parent: Disposable) : JPanel(B
         })
         DriverService.get().addStatusListener(parent) { s, _ -> if (s == DriverService.Status.CONNECTED) reload() }
         bridge.onEvents(parent) { events -> if (events.any { it.type.startsWith("browser.session.") }) SwingUtilities.invokeLater { reload() } }
+        bridge.onSessionChanged(parent) { reload() }
         if (DriverService.get().status == DriverService.Status.CONNECTED) reload()
     }
 
@@ -66,7 +67,7 @@ class SessionsPanel(private val project: Project, parent: Disposable) : JPanel(B
                     it.projectId() ?: "", it.currentUrl() ?: "", if (it.agentAccess() || it.owner().startsWith("agent:")) "yes" else "no"
                 ))
             }
-            if (bridge.selectedSessionId == null) list.firstOrNull { it.projectId() == bridge.projectId }?.let { bridge.select(it.sessionId()) }
+            if (bridge.selectedSessionId == null) list.firstOrNull { it.projectId() == bridge.projectId && it.state().name == "RUNNING" }?.let { bridge.select(it.sessionId()) }
         }
     }
 

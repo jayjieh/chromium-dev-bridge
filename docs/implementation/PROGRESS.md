@@ -39,7 +39,8 @@ Last updated: 2026-11-24. Verified on Windows 11, JDK 21.0.9, Maven 3.8.1, Node 
 - [x] Console with source navigation (source-map aware), network table with waterfall, DOM tree + inspector, screenshot viewer/compare, sessions + approvals
 - [x] Dev-server detection (Vite, Next.js, Angular, CRA, Nuxt, SvelteKit, Spring Boot)
 - [x] Background threading, Disposable-based cleanup, JBColor theming
-- [ ] Manual check in a running IDE (`./gradlew runIde`) in light and dark themes, not done yet
+- [x] Manual check in a running IDE (`./gradlew runIde`, IntelliJ IDEA 2025.3, dark theme) against a live driver: all 8 tabs, live preview with click forwarding, console streaming with source-mapped navigation to `src/dashboard.ts:27`, network waterfall, DOM tree + inspector, screenshots + compare, session restart, settings page
+- [ ] Light theme check (theme switching couldn't be driven during the manual session; colours come from JBColor)
 - [ ] `verifyPlugin` against recommended IDEs (configured; runs in CI, not run locally)
 
 ## Phase 4 — AI agent integration
@@ -70,8 +71,8 @@ Last updated: 2026-11-24. Verified on Windows 11, JDK 21.0.9, Maven 3.8.1, Node 
 | 1 | Driver launches Chromium | `PlaywrightProviderBrowserTest`, `DriverEndToEndTest` |
 | 2 | Navigates to a local app | `DriverEndToEndTest.loginFlow…` |
 | 3 | Multiple isolated sessions | `sessionsAreIsolated`, `SessionManagerTest.agentsAreIsolatedFromEachOther` |
-| 4 | Plugin connects to driver | `DriverService` + `EventStream` (unit-tested parsing; not yet exercised in a running IDE) |
-| 5 | Navigation controlled from IntelliJ | Browser tab controls → REST (not yet exercised in a running IDE) |
+| 4 | Plugin connects to driver | Verified manually in `runIde` ("● Connected", status in Settings tab) |
+| 5 | Navigation controlled from IntelliJ | Verified manually: Go / address bar, preview click forwarding |
 | 6 | Console errors appear in IntelliJ | Console tab via WebSocket `browser.console.*` (event delivery tested in `tabsAndWebSocketEvents`) |
 | 7 | Network requests appear in IntelliJ | Network tab via `browser.network.*` events |
 | 8 | DOM elements can be inspected | `/dom`, `/elements/inspect`; Elements tab |
@@ -83,6 +84,14 @@ Last updated: 2026-11-24. Verified on Windows 11, JDK 21.0.9, Maven 3.8.1, Node 
 | 14 | Resources released on close | `closeReleasesDriverAndRemovesSession`, e2e `SESSION_NOT_FOUND` after close |
 | 15 | Automated tests pass | See test status above |
 | 16 | Installation works on one OS | Windows verified; macOS/Linux procedures documented |
+
+## Fixed after the manual IDE session (2026-11-24)
+* Client sent `Accept: application/json` to the JPEG preview endpoint (HTTP 406), so the IDE preview never rendered; e2e test now covers `preview`.
+* Operations on a session that is still STARTING failed with `SESSION_NOT_RUNNING`; the driver now waits up to 30 s for start-up.
+* Source-map resolution finished after the live console event was sent, so the IDE showed compiled locations; the driver now re-sends the enriched entry and the Console tab refreshes it.
+* Source lookup ran on the EDT (IntelliJ "slow operation" error); now a non-blocking read action.
+* Browser toolbar was clipped in narrow tool windows and some glyphs did not render; now wrapping IntelliJ icon buttons.
+* Elements tree went stale after navigation and only expanded a few rows; Settings tab lost its status lines; Sessions tab didn't mark the inspected session; screenshot viewer didn't scale; sensitive-field mask was magenta (now grey).
 
 ## Architectural deviations
 * Provider modules merged into `playwright-provider` (ADR-0003). `browser-api` is the Java client SDK, not generated code (ADR-0004).

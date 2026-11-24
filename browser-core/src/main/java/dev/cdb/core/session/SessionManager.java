@@ -775,7 +775,12 @@ public class SessionManager implements AutoCloseable {
                 if (original == null && !frames.isEmpty() && frames.get(0).original() != null) original = frames.get(0).original();
                 if (changed) {
                     SourceLocation finalOriginal = original;
-                    s.console().replace(e.seq(), old -> old.withOriginal(finalOriginal, frames));
+                    ConsoleEntry enriched = e.withOriginal(finalOriginal, frames);
+                    if (s.console().replace(e.seq(), old -> enriched)) {
+                        // Same eventId and seq as the first event: clients replace the entry they already show.
+                        bus.publish(DriverEvent.of(enriched.level() == ConsoleLevel.ERROR ? EventTypes.CONSOLE_ERROR
+                                : EventTypes.CONSOLE_MESSAGE, s.id(), enriched.tabId(), enriched));
+                    }
                 }
             } catch (RuntimeException ex) {
                 log.debug("Source map enrichment failed: {}", ex.toString());

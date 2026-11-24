@@ -298,8 +298,10 @@ public class BrowserDriverClient {
 
     private <T> HttpResponse<T> exchange(String method, String path, Object body, HttpResponse.BodyHandler<T> handler) {
         try {
+            boolean binary = path.contains("/preview?") || path.endsWith("/preview")
+                    || path.endsWith("/image");
             HttpRequest.Builder b = HttpRequest.newBuilder(URI.create(baseUrl + path)).timeout(timeout)
-                    .header("Accept", "application/json");
+                    .header("Accept", binary ? "image/png, image/jpeg, application/problem+json" : "application/json, application/problem+json");
             if (token != null) b.header("Authorization", "Bearer " + token);
             if (clientName != null) b.header("X-CDB-Client", clientName);
             if (tool != null) b.header("X-CDB-Tool", tool);

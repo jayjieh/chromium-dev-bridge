@@ -137,7 +137,11 @@ class DriverEndToEndTest {
             ScreenshotInfo element = agent.screenshot(id, new ScreenshotRequest(null, "card", false, Locator.testId("visitors"),
                     ImageFormat.JPEG, 80, null, true, true));
             assertThat(element.base64()).isNotBlank();
-            assertThat(agent.screenshots(id)).hasSizeGreaterThanOrEqualTo(3);
+            int historyBefore = agent.screenshots(id).size();
+            assertThat(historyBefore).isGreaterThanOrEqualTo(3);
+            byte[] frame = agent.preview(id, null, 50);
+            assertThat(frame[0]).isEqualTo((byte) 0xFF); // JPEG SOI marker
+            assertThat(agent.screenshots(id)).hasSize(historyBefore); // previews are not stored
         } finally {
             agent.closeSession(id);
         }

@@ -71,7 +71,9 @@ class ScreenshotsPanel(private val project: Project, parent: Disposable) : JPane
 
     private fun show(screenshotId: String) {
         background({ DriverService.get().client().screenshotImage(screenshotId) }) { bytes ->
-            viewer.icon = ImageIcon(ImageIO.read(ByteArrayInputStream(bytes)))
+            val img = ImageIO.read(ByteArrayInputStream(bytes)) ?: return@background
+            val maxW = (viewer.parent?.width ?: img.width).coerceAtLeast(100) - 8
+            viewer.icon = ImageIcon(if (img.width > maxW) img.getScaledInstance(maxW, img.height * maxW / img.width, java.awt.Image.SCALE_SMOOTH) else img)
         }
     }
 

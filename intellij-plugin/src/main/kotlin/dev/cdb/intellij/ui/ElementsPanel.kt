@@ -37,6 +37,7 @@ class ElementsPanel(private val project: Project, parent: Disposable) : JPanel(B
     private val root = DefaultMutableTreeNode("Page")
     private val tree = Tree(DefaultTreeModel(root))
     private val props = DefaultTableModel(arrayOf("Property", "Value"), 0)
+    @Volatile private var stale = false
 
     data class Node(val element: DomElement) {
         override fun toString(): String = buildString {
@@ -55,7 +56,7 @@ class ElementsPanel(private val project: Project, parent: Disposable) : JPanel(B
         toolbar.add(mode)
         toolbar.add(filter)
         filter.columns = 18
-        toolbar.add(JButton("Refresh").apply { addActionListener { refresh() } })
+        toolbar.add(JButton("Refresh").also { b -> b.addActionListener { refresh() } })
         add(toolbar, BorderLayout.NORTH)
         val split = JBSplitter(true, 0.6f)
         split.firstComponent = JBScrollPane(tree)
@@ -65,13 +66,28 @@ class ElementsPanel(private val project: Project, parent: Disposable) : JPanel(B
             val node = (tree.lastSelectedPathComponent as? DefaultMutableTreeNode)?.userObject as? Node ?: return@addTreeSelectionListener
             inspect(node.element.reference())
         }
-        bridge.onSessionChanged(parent) { refresh() }
+        bridge.onSessionChanged(parent) { refresh(quiet = true) }
+        // After a navigation the tree is stale: refresh now if visible, otherwise when the tab is shown again.
+        val navRefresh = javax.swing.Timer(500) { if (isShowing) { stale = false; refresh(quiet = true) } }.apply { isRepeats = false }
+        bridge.onEvents(parent) { events ->
+            if (events.any { it.type == "browser.navigation.completed" }) javax.swing.SwingUtilities.invokeLater {
+                stale = true
+                navRefresh.restart()
+            }
+        }
+        addAncestorListener(object : javax.swing.event.AncestorListener {
+            override fun ancestorAdded(event: javax.swing.event.AncestorEvent) {
+                if (stale) { stale = false; refresh(quiet = true) }
+            }
+            override fun ancestorRemoved(event: javax.swing.event.AncestorEvent) {}
+            override fun ancestorMoved(event: javax.swing.event.AncestorEvent) {}
+        })
     }
 
-    fun refresh() {
+    fun refresh(quiet: Boolean = false) {
         val id = bridge.selectedSessionId ?: return
         val req = SnapshotRequest(null, mode.selectedItem as SnapshotMode, null, 2000, null, null, filter.text.trim().ifBlank { null })
-        background({ DriverService.get().client().dom(id, req) }, { notify(project, describe(it), NotificationType.WARNING) }) { show(it) }
+        background({ DriverService.get().client().dom(id, req) }, { if (!quiet) notify(project, describe(it), NotificationType.WARNING) }) { show(it) }
     }
 
     internal fun show(snapshot: DomSnapshot) {
@@ -84,7 +100,8 @@ class ElementsPanel(private val project: Project, parent: Disposable) : JPanel(B
             (e.parent()?.let { byRef[it] } ?: root).add(node)
         }
         (tree.model as DefaultTreeModel).reload()
-        for (i in 0 until minOf(tree.rowCount, 50)) tree.expandRow(i)
+        var row = 0
+        while (row < tree.rowCount && row < 300) tree.expandRow(row++)
     }
 
     private fun inspect(ref: String) {

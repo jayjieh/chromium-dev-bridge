@@ -45,7 +45,27 @@ object SourceNavigator {
         return 0
     }
 
-    /** Opens the file at the location's line and column (1-based in the protocol). Returns false if not found. */
+    /**
+     * UI entry point: resolves the file in a non-blocking background read action (index lookups are not allowed on
+     * the EDT), then opens it on the EDT. [onMissing] runs on the EDT when no project file matches.
+     */
+    fun navigate(project: Project, location: SourceLocation, onMissing: () -> Unit) {
+        com.intellij.openapi.application.ReadAction.nonBlocking<VirtualFile?> { resolve(project, location) }
+            .inSmartMode(project)
+            .expireWith(project)
+            .finishOnUiThread(com.intellij.openapi.application.ModalityState.defaultModalityState()) { file ->
+                if (file == null) onMissing() else openAt(project, file, location)
+            }
+            .submit(com.intellij.util.concurrency.AppExecutorUtil.getAppExecutorService())
+    }
+
+    private fun openAt(project: Project, file: VirtualFile, location: SourceLocation) {
+        val line = ((location.line() ?: 1) - 1).coerceAtLeast(0)
+        val column = ((location.column() ?: 1) - 1).coerceAtLeast(0)
+        OpenFileDescriptor(project, file, line, column).navigate(true)
+    }
+
+    /** Synchronous variant (tests, background callers). Returns false if not found. */
     fun open(project: Project, location: SourceLocation): Boolean {
         val file = ReadAction.compute<VirtualFile?, RuntimeException> { resolve(project, location) } ?: return false
         val line = ((location.line() ?: 1) - 1).coerceAtLeast(0)

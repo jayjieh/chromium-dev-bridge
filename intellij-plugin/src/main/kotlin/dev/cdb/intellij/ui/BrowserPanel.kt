@@ -1,6 +1,8 @@
 package dev.cdb.intellij.ui
 
+import com.intellij.icons.AllIcons
 import com.intellij.ide.BrowserUtil
+import com.intellij.openapi.diagnostic.logger
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
@@ -41,6 +43,7 @@ import javax.swing.Timer
  * Playwright-managed Chromium session (see ADR-0001: the inspected browser is the driver's Chromium, not JCEF).
  */
 class BrowserPanel(private val project: Project, parent: Disposable) : JPanel(BorderLayout()) {
+    private val log = logger<BrowserPanel>()
     private val bridge = ProjectBridge.get(project)
     private val driver = DriverService.get()
     private val address = JBTextField(CdbSettings.get().state.defaultUrl)
@@ -52,23 +55,23 @@ class BrowserPanel(private val project: Project, parent: Disposable) : JPanel(Bo
     @Volatile private var fetching = false
 
     init {
-        val nav = JPanel(FlowLayout(FlowLayout.LEFT, 4, 2))
-        nav.add(button("◀", "Back") { withSession { id -> driver.client().back(id, null) } })
-        nav.add(button("▶", "Forward") { withSession { id -> driver.client().forward(id, null) } })
-        nav.add(button("⟳", "Refresh") { withSession { id -> driver.client().refresh(id, null) } })
-        nav.add(button("✕", "Stop") { withSession { id -> driver.client().stop(id, null) } })
-        nav.add(button("+", "Open tab") { withSession { id -> driver.client().openTab(id, address.text.trim().ifBlank { null }) } })
-        nav.add(button("−", "Close tab") {
+        val nav = JPanel(com.intellij.util.ui.WrapLayout(FlowLayout.LEFT, 2, 2))
+        nav.add(button(AllIcons.Actions.Back, "Back") { withSession { id -> driver.client().back(id, null) } })
+        nav.add(button(AllIcons.Actions.Forward, "Forward") { withSession { id -> driver.client().forward(id, null) } })
+        nav.add(button(AllIcons.Actions.Refresh, "Refresh") { withSession { id -> driver.client().refresh(id, null) } })
+        nav.add(button(AllIcons.Actions.Suspend, "Stop loading") { withSession { id -> driver.client().stop(id, null) } })
+        nav.add(button(AllIcons.General.Add, "Open tab") { withSession { id -> driver.client().openTab(id, address.text.trim().ifBlank { null }) } })
+        nav.add(button(AllIcons.General.Remove, "Close active tab") {
             withSession { id ->
                 val c = driver.client()
                 val tabs = c.tabs(id)
                 if (tabs.size > 1) c.closeTab(id, tabs.first { it.active }.tabId())
             }
         })
-        nav.add(button("📷", "Screenshot") {
+        nav.add(button(AllIcons.Actions.Dump, "Screenshot (added to the Screenshots tab)") {
             withSession { id -> driver.client().screenshot(id, ScreenshotRequest.viewport("ide")) }
         })
-        nav.add(button("⇱", "Open in external browser") { BrowserUtil.browse(address.text.trim()) })
+        nav.add(button(AllIcons.General.Web, "Open in external browser") { BrowserUtil.browse(address.text.trim()) })
         nav.add(viewport)
         nav.add(button("New session", "Create a session for this project") { newSession() })
         viewport.addActionListener {
@@ -144,22 +147,38 @@ class BrowserPanel(private val project: Project, parent: Disposable) : JPanel(Bo
         val id = bridge.selectedSessionId ?: return
         if (fetching || !isShowing || driver.status != DriverService.Status.CONNECTED) return
         fetching = true
-        background({ driver.client().preview(id, null, 60) }, { fetching = false }) { bytes ->
+        background({ driver.client().preview(id, null, 60) }, { error ->
             fetching = false
-            preview.image = ImageIO.read(ByteArrayInputStream(bytes))
+            preview.message = "Preview unavailable: " + describe(error)
+            log.debug("Preview failed", error)
+            preview.repaint()
+        }) { bytes ->
+            fetching = false
+            val img = ImageIO.read(ByteArrayInputStream(bytes))
+            preview.message = if (img == null) "Preview frame could not be decoded" else null
+            preview.image = img
             preview.repaint()
         }
     }
 
-    private fun button(text: String, tooltip: String, action: () -> Unit) = JButton(text).apply {
-        toolTipText = tooltip
-        isFocusable = false
-        addActionListener { action() }
+    private fun button(text: String, tooltip: String, action: () -> Unit) = JButton(text).also { b ->
+        b.toolTipText = tooltip
+        b.isFocusable = false
+        b.addActionListener { action() }
+    }
+
+    private fun button(icon: javax.swing.Icon, tooltip: String, action: () -> Unit) = JButton(icon).also { b ->
+        b.toolTipText = tooltip
+        b.isFocusable = false
+        b.putClientProperty("JButton.buttonType", "toolbar")
+        b.preferredSize = java.awt.Dimension(30, 28)
+        b.addActionListener { action() }
     }
 
     /** Scaled preview; clicks are forwarded to the browser as coordinate clicks (best effort). */
     private inner class PreviewCanvas : JPanel() {
         var image: Image? = null
+        var message: String? = null
         private var scale = 1.0
         private var offsetX = 0
         private var offsetY = 0
@@ -183,9 +202,14 @@ class BrowserPanel(private val project: Project, parent: Disposable) : JPanel(Bo
         override fun paintComponent(g: Graphics) {
             super.paintComponent(g)
             val img = image
-            if (img == null) {
+            if (img == null || bridge.selectedSessionId == null) {
                 g.color = JBColor.GRAY
-                g.drawString(if (bridge.selectedSessionId == null) "Create a session to see the browser preview" else "Loading preview…", 12, 24)
+                val text = when {
+                    bridge.selectedSessionId == null -> "Create a session to see the browser preview"
+                    message != null -> message!!
+                    else -> "Loading preview…"
+                }
+                g.drawString(text, 12, 24)
                 return
             }
             val w = img.getWidth(null).toDouble()

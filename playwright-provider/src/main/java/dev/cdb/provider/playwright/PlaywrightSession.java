@@ -52,6 +52,7 @@ final class PlaywrightSession implements BrowserSessionDriver {
     private static final String SENSITIVE_MASK_SELECTOR = "input[type=password], input[autocomplete*=cc-], "
             + "input[autocomplete=one-time-code], [data-cdb-sensitive]";
 
+    private static final String MASK_COLOR = "#9E9E9E";
     private final PlaywrightWorker worker;
     private final boolean dedicated;
     private final SessionLaunchSpec spec;
@@ -867,12 +868,12 @@ final class PlaywrightSession implements BrowserSessionDriver {
             byte[] bytes;
             if (r.locator() != null && !r.locator().isEmpty()) {
                 com.microsoft.playwright.Locator.ScreenshotOptions o = new com.microsoft.playwright.Locator.ScreenshotOptions()
-                        .setType(type).setMask(mask);
+                        .setType(type).setMask(mask).setMaskColor(MASK_COLOR);
                 if (type == ScreenshotType.JPEG && r.quality() != null) o.setQuality(r.quality());
                 bytes = Locators.resolve(p, r.locator()).first().screenshot(o);
             } else {
                 Page.ScreenshotOptions o = new Page.ScreenshotOptions().setType(type).setFullPage(Boolean.TRUE.equals(r.fullPage()))
-                        .setMask(mask);
+                        .setMask(mask).setMaskColor(MASK_COLOR);
                 if (type == ScreenshotType.JPEG && r.quality() != null) o.setQuality(r.quality());
                 bytes = p.screenshot(o);
             }

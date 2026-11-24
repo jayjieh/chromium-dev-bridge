@@ -110,6 +110,16 @@ public final class ManagedSession {
     }
 
     public BrowserSessionDriver requireRunning() {
+        // A session that is (re)starting becomes usable within seconds: wait instead of failing the caller.
+        long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(30);
+        while ((state == SessionState.CREATED || state == SessionState.STARTING) && System.nanoTime() < deadline) {
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
         BrowserSessionDriver d = driver;
         if (state != SessionState.RUNNING || d == null) {
             throw new BridgeException(ErrorCode.SESSION_NOT_RUNNING, "Session " + id + " is " + state
