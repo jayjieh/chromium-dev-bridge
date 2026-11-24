@@ -1,0 +1,1083 @@
+openapi: 3.1.0
+info:
+  title: Chromium Developer Bridge — Browser Driver API
+  version: 0.1.0
+  description: |
+    Local API of the Chromium Developer Bridge browser driver.
+
+    * Binds to 127.0.0.1 by default.
+    * Every operation except `GET /api/v1/health` needs `Authorization: Bearer <token>`.
+      Tokens are generated at start-up and written to `~/.chromium-dev-bridge/driver.json`.
+      `adminToken` has every scope; `agentToken` can't grant approvals or evaluate JavaScript and only
+      sees the sessions it created or sessions created with `agentAccess: true`.
+    * Requests carrying an `Origin` header that isn't explicitly allowed are rejected (blocks web pages).
+    * The `Host` header must be a loopback name (DNS-rebinding protection).
+    * Errors use RFC 9457 Problem Details (`application/problem+json`) with an extra `code` member.
+    * Real-time events: WebSocket `GET /api/v1/events` (JSON-RPC 2.0, see WEBSOCKET_PROTOCOL.md).
+  license:
+    name: Apache-2.0
+servers:
+  - url: http://127.0.0.1:7878
+security:
+  - bearerAuth: []
+tags:
+  - name: system
+  - name: sessions
+  - name: navigation
+  - name: tabs
+  - name: inspection
+  - name: actions
+  - name: screenshots
+  - name: scenarios
+  - name: security
+
+paths:
+  /api/v1/health:
+    get:
+      tags: [system]
+      operationId: health
+      security: []
+      responses:
+        '200':
+          description: Driver is up
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HealthStatus' }
+  /api/v1/capabilities:
+    get:
+      tags: [system]
+      operationId: capabilities
+      responses:
+        '200':
+          description: Driver capabilities
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Capabilities' }
+        default: { $ref: '#/components/responses/Problem' }
+  /api/v1/openapi.yaml:
+    get:
+      tags: [system]
+      operationId: openApiDocument
+      responses:
+        '200':
+          description: This document
+          content:
+            application/yaml:
+              schema: { type: string }
+
+  /api/v1/sessions:
+    post:
+      tags: [sessions]
+      operationId: createSession
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SessionCreateRequest' }
+      responses:
+        '201':
+          description: Session created and running
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SessionInfo' }
+        default: { $ref: '#/components/responses/Problem' }
+    get:
+      tags: [sessions]
+      operationId: listSessions
+      parameters:
+        - { name: projectId, in: query, schema: { type: string } }
+      responses:
+        '200':
+          description: Sessions visible to the caller
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/SessionInfo' }
+        default: { $ref: '#/components/responses/Problem' }
+  /api/v1/sessions/{sessionId}:
+    parameters: [ { $ref: '#/components/parameters/SessionId' } ]
+    get:
+      tags: [sessions]
+      operationId: getSession
+      responses:
+        '200':
+          description: Session
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SessionInfo' }
+        default: { $ref: '#/components/responses/Problem' }
+    delete:
+      tags: [sessions]
+      operationId: closeSession
+      responses:
+        '204': { description: Closed; browser resources released }
+        default: { $ref: '#/components/responses/Problem' }
+  /api/v1/sessions/{sessionId}/restart:
+    parameters: [ { $ref: '#/components/parameters/SessionId' } ]
+    post:
+      tags: [sessions]
+      operationId: restartSession
+      responses:
+        '200':
+          description: Session restarted (browser relaunched if needed, context recreated, last URL reopened)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SessionInfo' }
+        default: { $ref: '#/components/responses/Problem' }
+  /api/v1/sessions/{sessionId}/viewport:
+    parameters: [ { $ref: '#/components/parameters/SessionId' } ]
+    post:
+      tags: [sessions]
+      operationId: setViewport
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ViewportRequest' }
+      responses:
+        '200':
+          description: Viewport applied to the active tab
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SessionInfo' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/v1/sessions/{sessionId}/navigate:
+    parameters: [ { $ref: '#/components/parameters/SessionId' } ]
+    post:
+      tags: [navigation]
+      operationId: navigate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NavigateRequest' }
+      responses:
+        '200':
+          description: Navigation finished
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NavigationResult' }
+        default: { $ref: '#/components/responses/Problem' }
+  /api/v1/sessions/{sessionId}/refresh:
+    parameters: [ { $ref: '#/components/parameters/SessionId' }, { $ref: '#/components/parameters/TabIdQuery' } ]
+    post:
+      tags: [navigation]
+      operationId: refresh
+      responses:
+        '200':
+          description: Reloaded
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NavigationResult' }
+        default: { $ref: '#/components/responses/Problem' }
+  /api/v1/sessions/{sessionId}/back:
+    parameters: [ { $ref: '#/components/parameters/SessionId' }, { $ref: '#/components/parameters/TabIdQuery' } ]
+    post:
+      tags: [navigation]
+      operationId: goBack
+      responses:
+        '200':
+          description: Navigated back (url unchanged when there is no history)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NavigationResult' }
+        default: { $ref: '#/components/responses/Problem' }
+  /api/v1/sessions/{sessionId}/forward:
+    parameters: [ { $ref: '#/components/parameters/SessionId' }, { $ref: '#/components/parameters/TabIdQuery' } ]
+    post:
+      tags: [navigation]
+      operationId: goForward
+      responses:
+        '200':
+          description: Navigated forward
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NavigationResult' }
+        default: { $ref: '#/components/responses/Problem' }
+  /api/v1/sessions/{sessionId}/stop:
+    parameters: [ { $ref: '#/components/parameters/SessionId' }, { $ref: '#/components/parameters/TabIdQuery' } ]
+    post:
+      tags: [navigation]
+      operationId: stopLoading
+      responses:
+        '200':
+          description: Pending navigation stopped
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PageInfo' }
+        default: { $ref: '#/components/responses/Problem' }
+  /api/v1/sessions/{sessionId}/page:
+    parameters: [ { $ref: '#/components/parameters/SessionId' }, { $ref: '#/components/parameters/TabIdQuery' } ]
+    get:
+      tags: [navigation]
+      operationId: getPage
+      responses:
+        '200':
+          description: Current URL, title and ready state
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PageInfo' }
+        default: { $ref: '#/components/responses/Problem' }
+  /api/v1/sessions/{sessionId}/wait:
+    parameters: [ { $ref: '#/components/parameters/SessionId' } ]
+    post:
+      tags: [navigation]
+      operationId: waitFor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/WaitRequest' }
+      responses:
+        '200':
+          description: Wait outcome (satisfied=false on timeout)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WaitResult' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/v1/sessions/{sessionId}/tabs:
+    parameters: [ { $ref: '#/components/parameters/SessionId' } ]
+    get:
+      tags: [tabs]
+      operationId: listTabs
+      responses:
+        '200':
+          description: Tabs
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/TabInfo' }
+        default: { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [tabs]
+      operationId: openTab
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/OpenTabRequest' }
+      responses:
+        '201':
+          description: Tab opened and activated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TabInfo' }
+        default: { $ref: '#/components/responses/Problem' }
+  /api/v1/sessions/{sessionId}/tabs/{tabId}:
+    parameters: [ { $ref: '#/components/parameters/SessionId' }, { $ref: '#/components/parameters/TabId' } ]
+    delete:
+      tags: [tabs]
+      operationId: closeTab
+      responses:
+        '204': { description: Tab closed }
+        default: { $ref: '#/components/responses/Problem' }
+  /api/v1/sessions/{sessionId}/tabs/{tabId}/activate:
+    parameters: [ { $ref: '#/components/parameters/SessionId' }, { $ref: '#/components/parameters/TabId' } ]
+    post:
+      tags: [tabs]
+      operationId: activateTab
+      responses:
+        '200':
+          description: Tab is now active
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TabInfo' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/v1/sessions/{sessionId}/dom:
+    parameters:
+      - { $ref: '#/components/parameters/SessionId' }
+      - { $ref: '#/components/parameters/TabIdQuery' }
+      - { name: mode, in: query, schema: { $ref: '#/components/schemas/SnapshotMode' } }
+      - { name: root, in: query, description: CSS selector limiting the snapshot, schema: { type: string } }
+      - { name: maxElements, in: query, schema: { type: integer, minimum: 1, maximum: 5000 } }
+      - { name: includeHidden, in: query, schema: { type: boolean } }
+      - { name: role, in: query, schema: { type: string } }
+      - { name: text, in: query, description: Case-insensitive filter on name/text, schema: { type: string } }
+    get:
+      tags: [inspection]
+      operationId: getDom
+      responses:
+        '200':
+          description: DOM snapshot (sensitive values removed)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DomSnapshot' }
+        default: { $ref: '#/components/responses/Problem' }
+  /api/v1/sessions/{sessionId}/elements/inspect:
+    parameters: [ { $ref: '#/components/parameters/SessionId' } ]
+    post:
+      tags: [inspection]
+      operationId: inspectElement
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InspectRequest' }
+      responses:
+        '200':
+          description: Element details
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ElementDetails' }
+        default: { $ref: '#/components/responses/Problem' }
+  /api/v1/sessions/{sessionId}/accessibility:
+    parameters:
+      - { $ref: '#/components/parameters/SessionId' }
+      - { $ref: '#/components/parameters/TabIdQuery' }
+      - { name: root, in: query, schema: { type: string } }
+    get:
+      tags: [inspection]
+      operationId: getAccessibility
+      responses:
+        '200':
+          description: ARIA snapshot (YAML text) plus audit findings
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AccessibilityReport' }
+        default: { $ref: '#/components/responses/Problem' }
+  /api/v1/sessions/{sessionId}/console:
+    parameters:
+      - { $ref: '#/components/parameters/SessionId' }
+      - { $ref: '#/components/parameters/TabIdQuery' }
+      - { name: level, in: query, description: Minimum level, schema: { $ref: '#/components/schemas/ConsoleLevel' } }
+      - { name: since, in: query, schema: { type: string, format: date-time } }
+      - { name: text, in: query, schema: { type: string } }
+      - { name: source, in: query, description: Substring of source file/url, schema: { type: string } }
+      - { $ref: '#/components/parameters/AfterSeq' }
+      - { $ref: '#/components/parameters/Limit' }
+    get:
+      tags: [inspection]
+      operationId: getConsole
+      responses:
+        '200':
+          description: Console entries (oldest first)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ConsolePage' }
+        default: { $ref: '#/components/responses/Problem' }
+  /api/v1/sessions/{sessionId}/network:
+    parameters:
+      - { $ref: '#/components/parameters/SessionId' }
+      - { $ref: '#/components/parameters/TabIdQuery' }
+      - { name: fetchXhrOnly, in: query, schema: { type: boolean } }
+      - { name: failedOnly, in: query, schema: { type: boolean } }
+      - { name: status, in: query, description: 'Exact status (404) or class (4xx)', schema: { type: string } }
+      - { name: resourceType, in: query, schema: { type: string } }
+      - { name: urlPattern, in: query, description: 'Substring or glob (*) matched against the URL', schema: { type: string } }
+      - { name: minDurationMs, in: query, schema: { type: integer } }
+      - { $ref: '#/components/parameters/AfterSeq' }
+      - { $ref: '#/components/parameters/Limit' }
+    get:
+      tags: [inspection]
+      operationId: getNetwork
+      responses:
+        '200':
+          description: Redacted network entries (oldest first)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NetworkPage' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/v1/sessions/{sessionId}/actions:
+    parameters: [ { $ref: '#/components/parameters/SessionId' } ]
+    post:
+      tags: [actions]
+      operationId: performAction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ActionRequest' }
+      responses:
+        '200':
+          description: Action result (success=false with error when the element could not be acted on)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ActionResult' }
+        default: { $ref: '#/components/responses/Problem' }
+  /api/v1/sessions/{sessionId}/evaluate:
+    parameters: [ { $ref: '#/components/parameters/SessionId' } ]
+    post:
+      tags: [actions]
+      operationId: evaluate
+      description: Admin scope only; disabled unless `cdb.security.allow-evaluate=true` and an EVALUATE approval exists for the session.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EvaluateRequest' }
+      responses:
+        '200':
+          description: JSON-serialisable result
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EvaluateResult' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/v1/sessions/{sessionId}/screenshots:
+    parameters: [ { $ref: '#/components/parameters/SessionId' } ]
+    post:
+      tags: [screenshots]
+      operationId: takeScreenshot
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ScreenshotRequest' }
+      responses:
+        '201':
+          description: Screenshot stored
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ScreenshotInfo' }
+        default: { $ref: '#/components/responses/Problem' }
+    get:
+      tags: [screenshots]
+      operationId: listScreenshots
+      responses:
+        '200':
+          description: Screenshot history (newest first)
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ScreenshotInfo' }
+        default: { $ref: '#/components/responses/Problem' }
+  /api/v1/screenshots/{screenshotId}/image:
+    parameters:
+      - { name: screenshotId, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [screenshots]
+      operationId: getScreenshotImage
+      responses:
+        '200':
+          description: Image bytes
+          content:
+            image/png: { schema: { type: string, contentEncoding: binary } }
+            image/jpeg: { schema: { type: string, contentEncoding: binary } }
+        default: { $ref: '#/components/responses/Problem' }
+  /api/v1/screenshots/compare:
+    post:
+      tags: [screenshots]
+      operationId: compareScreenshots
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CompareRequest' }
+      responses:
+        '200':
+          description: Pixel comparison result
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CompareResult' }
+        default: { $ref: '#/components/responses/Problem' }
+  /api/v1/baselines:
+    get:
+      tags: [screenshots]
+      operationId: listBaselines
+      responses:
+        '200':
+          description: Baselines
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/BaselineInfo' }
+        default: { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [screenshots]
+      operationId: saveBaseline
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BaselineRequest' }
+      responses:
+        '201':
+          description: Baseline stored (replaces an existing one with the same name)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BaselineInfo' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/v1/sessions/{sessionId}/scenarios:
+    parameters: [ { $ref: '#/components/parameters/SessionId' } ]
+    post:
+      tags: [scenarios]
+      operationId: runScenario
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Scenario' }
+      responses:
+        '200':
+          description: Execution report (secrets masked)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ScenarioReport' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/v1/sessions/{sessionId}/approvals:
+    parameters: [ { $ref: '#/components/parameters/SessionId' } ]
+    get:
+      tags: [security]
+      operationId: listApprovals
+      responses:
+        '200':
+          description: Approvals granted for this session
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ApprovalInfo' }
+        default: { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [security]
+      operationId: grantApproval
+      description: Admin scope only (the human user via the IDE or CLI). Agent tokens get 403.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ApprovalRequest' }
+      responses:
+        '201':
+          description: Approval granted
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApprovalInfo' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /api/v1/events:
+    get:
+      tags: [system]
+      operationId: eventStream
+      description: WebSocket upgrade endpoint (JSON-RPC 2.0). Requires the Authorization header on the handshake.
+      responses:
+        '101': { description: Switching protocols }
+        default: { $ref: '#/components/responses/Problem' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  parameters:
+    SessionId: { name: sessionId, in: path, required: true, schema: { type: string } }
+    TabId: { name: tabId, in: path, required: true, schema: { type: string } }
+    TabIdQuery: { name: tabId, in: query, description: Defaults to the active tab, schema: { type: string } }
+    AfterSeq: { name: afterSeq, in: query, description: Return entries with seq greater than this, schema: { type: integer, format: int64 } }
+    Limit: { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 1000, default: 200 } }
+  responses:
+    Problem:
+      description: RFC 9457 problem
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+  schemas:
+    Problem:
+      type: object
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string }
+        code: { $ref: '#/components/schemas/ErrorCode' }
+        correlationId: { type: string }
+    ErrorCode:
+      type: string
+      enum: [SESSION_NOT_FOUND, SESSION_NOT_RUNNING, ACCESS_DENIED, UNAUTHENTICATED, URL_NOT_ALLOWED, APPROVAL_REQUIRED,
+             VALIDATION_FAILED, TIMEOUT, ELEMENT_NOT_FOUND, BROWSER_ERROR, RATE_LIMITED, PAYLOAD_TOO_LARGE,
+             NOT_FOUND, UNSUPPORTED, LIMIT_EXCEEDED, INTERNAL]
+    HealthStatus:
+      type: object
+      properties:
+        status: { type: string, enum: [UP, DEGRADED] }
+        version: { type: string }
+        uptimeSeconds: { type: integer }
+    Capabilities:
+      type: object
+      properties:
+        version: { type: string }
+        providers: { type: array, items: { $ref: '#/components/schemas/ProviderInfo' } }
+        snapshotModes: { type: array, items: { $ref: '#/components/schemas/SnapshotMode' } }
+        actionTypes: { type: array, items: { $ref: '#/components/schemas/ActionType' } }
+        eventTypes: { type: array, items: { type: string } }
+        viewportPresets: { type: object, additionalProperties: { $ref: '#/components/schemas/Viewport' } }
+        evaluateEnabled: { type: boolean }
+        allowedHosts: { type: array, items: { type: string } }
+        maxSessions: { type: integer }
+        discoveredBrowsers: { type: array, items: { type: string } }
+    ProviderInfo:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        version: { type: string }
+        browserName: { type: string }
+        browserVersion: { type: [string, 'null'] }
+    SessionState:
+      type: string
+      enum: [CREATED, STARTING, RUNNING, DISCONNECTED, FAILED, STOPPING, STOPPED]
+    Viewport:
+      type: object
+      required: [width, height]
+      properties:
+        width: { type: integer, minimum: 200, maximum: 7680 }
+        height: { type: integer, minimum: 200, maximum: 4320 }
+    ViewportPreset:
+      type: string
+      enum: [DESKTOP, LAPTOP, TABLET, MOBILE]
+    ViewportRequest:
+      type: object
+      properties:
+        preset: { $ref: '#/components/schemas/ViewportPreset' }
+        width: { type: integer }
+        height: { type: integer }
+    SessionCreateRequest:
+      type: object
+      properties:
+        projectId: { type: string, maxLength: 200 }
+        label: { type: string, maxLength: 200 }
+        headless: { type: boolean, default: true }
+        viewport: { $ref: '#/components/schemas/Viewport' }
+        viewportPreset: { $ref: '#/components/schemas/ViewportPreset' }
+        locale: { type: string, examples: [en-US] }
+        deviceScaleFactor: { type: number, minimum: 0.5, maximum: 4 }
+        userAgent: { type: string, description: Override for legitimate compatibility testing }
+        isolation: { type: string, enum: [SHARED, PROCESS], default: SHARED }
+        profileName: { type: string, pattern: '^[A-Za-z0-9_-]{1,64}$', description: 'Persistent isolated profile under ~/.chromium-dev-bridge/profiles/<name>' }
+        channel: { type: string, enum: [chromium, chrome, msedge] }
+        connectEndpoint: { type: string, description: 'Attach to an existing Chromium over CDP; loopback URLs only (http://127.0.0.1:9222)' }
+        idleTimeoutSeconds: { type: integer, minimum: 30 }
+        agentAccess: { type: boolean, description: 'Allow agent-scope clients to use this session (admin-created sessions only)' }
+        initialUrl: { type: string }
+    SessionInfo:
+      type: object
+      properties:
+        sessionId: { type: string }
+        projectId: { type: [string, 'null'] }
+        label: { type: [string, 'null'] }
+        contextId: { type: string }
+        activeTabId: { type: [string, 'null'] }
+        currentUrl: { type: [string, 'null'] }
+        title: { type: [string, 'null'] }
+        createdAt: { type: string, format: date-time }
+        lastActivityAt: { type: string, format: date-time }
+        state: { $ref: '#/components/schemas/SessionState' }
+        provider: { $ref: '#/components/schemas/ProviderInfo' }
+        headless: { type: boolean }
+        viewport: { $ref: '#/components/schemas/Viewport' }
+        owner: { type: string }
+        agentAccess: { type: boolean }
+        failureReason: { type: [string, 'null'] }
+    TabInfo:
+      type: object
+      properties:
+        tabId: { type: string }
+        url: { type: string }
+        title: { type: string }
+        active: { type: boolean }
+    OpenTabRequest:
+      type: object
+      properties:
+        url: { type: string }
+    WaitUntil:
+      type: string
+      enum: [COMMIT, DOMCONTENTLOADED, LOAD, NETWORKIDLE]
+    NavigateRequest:
+      type: object
+      required: [url]
+      properties:
+        url: { type: string }
+        tabId: { type: string }
+        waitUntil: { $ref: '#/components/schemas/WaitUntil' }
+        timeoutMs: { type: integer, minimum: 100, maximum: 300000 }
+    NavigationResult:
+      type: object
+      properties:
+        tabId: { type: string }
+        url: { type: string }
+        title: { type: string }
+        status: { type: [integer, 'null'] }
+        durationMs: { type: integer }
+    PageInfo:
+      type: object
+      properties:
+        tabId: { type: string }
+        url: { type: string }
+        title: { type: string }
+        readyState: { type: string }
+    Locator:
+      type: object
+      description: |
+        Element locator. Resolution order: ref, role (+name), testId, label, placeholder, text, css, xpath.
+      properties:
+        ref: { type: string, description: 'Reference from a DOM snapshot (element-12)' }
+        role: { type: string }
+        name: { type: string }
+        exact: { type: boolean }
+        testId: { type: string }
+        label: { type: string }
+        placeholder: { type: string }
+        text: { type: string }
+        css: { type: string }
+        xpath: { type: string }
+        nth: { type: integer, minimum: 0 }
+    ElementState:
+      type: string
+      enum: [VISIBLE, HIDDEN, ATTACHED, DETACHED]
+    WaitRequest:
+      type: object
+      properties:
+        tabId: { type: string }
+        locator: { $ref: '#/components/schemas/Locator' }
+        state: { $ref: '#/components/schemas/ElementState' }
+        loadState: { $ref: '#/components/schemas/WaitUntil' }
+        urlPattern: { type: string, description: 'Glob, e.g. **/dashboard' }
+        text: { type: string, description: Wait until text is visible }
+        timeoutMs: { type: integer }
+    WaitResult:
+      type: object
+      properties:
+        satisfied: { type: boolean }
+        durationMs: { type: integer }
+        message: { type: string }
+    ActionType:
+      type: string
+      enum: [CLICK, DOUBLE_CLICK, HOVER, SCROLL, FILL, CLEAR, TYPE, PRESS, SELECT, CHECK, UNCHECK, DRAG_AND_DROP,
+             FOCUS, GET_TEXT, GET_ATTRIBUTE, IS_VISIBLE, CLICK_AT]
+    ActionRequest:
+      type: object
+      required: [type]
+      properties:
+        type: { $ref: '#/components/schemas/ActionType' }
+        tabId: { type: string }
+        locator: { $ref: '#/components/schemas/Locator' }
+        target: { $ref: '#/components/schemas/Locator' }
+        value: { type: string }
+        values: { type: array, items: { type: string } }
+        key: { type: string, description: 'Key for PRESS, e.g. Enter, Control+A' }
+        attribute: { type: string }
+        deltaX: { type: integer }
+        deltaY: { type: integer }
+        x: { type: number }
+        y: { type: number }
+        timeoutMs: { type: integer }
+    ActionResult:
+      type: object
+      properties:
+        success: { type: boolean }
+        type: { $ref: '#/components/schemas/ActionType' }
+        durationMs: { type: integer }
+        value: { description: Result for GET_TEXT, GET_ATTRIBUTE, IS_VISIBLE }
+        message: { type: string }
+        pageUrl: { type: string }
+        navigated: { type: boolean }
+        errorCode: { type: [string, 'null'] }
+    EvaluateRequest:
+      type: object
+      required: [expression]
+      properties:
+        tabId: { type: string }
+        expression: { type: string, maxLength: 20000 }
+    EvaluateResult:
+      type: object
+      properties:
+        value: {}
+    SnapshotMode:
+      type: string
+      enum: [FULL, COMPACT, INTERACTIVE, ACCESSIBILITY]
+    Bounds:
+      type: object
+      properties: { x: { type: number }, y: { type: number }, width: { type: number }, height: { type: number } }
+    DomElement:
+      type: object
+      properties:
+        reference: { type: string }
+        parent: { type: [string, 'null'] }
+        depth: { type: integer }
+        tag: { type: string }
+        role: { type: [string, 'null'] }
+        name: { type: [string, 'null'] }
+        text: { type: [string, 'null'] }
+        visible: { type: boolean }
+        interactive: { type: boolean }
+        disabled: { type: boolean }
+        checked: { type: [boolean, 'null'] }
+        value: { type: [string, 'null'], description: 'Omitted or "[REDACTED]" for sensitive fields' }
+        attributes: { type: object, additionalProperties: { type: string } }
+        bounds: { $ref: '#/components/schemas/Bounds' }
+    DomSnapshot:
+      type: object
+      properties:
+        pageTitle: { type: string }
+        url: { type: string }
+        tabId: { type: string }
+        mode: { $ref: '#/components/schemas/SnapshotMode' }
+        elementCount: { type: integer }
+        truncated: { type: boolean }
+        elements: { type: array, items: { $ref: '#/components/schemas/DomElement' } }
+        ariaSnapshot: { type: [string, 'null'] }
+    InspectRequest:
+      type: object
+      required: [locator]
+      properties:
+        tabId: { type: string }
+        locator: { $ref: '#/components/schemas/Locator' }
+        styles: { type: array, items: { type: string }, description: Computed style properties to return (default set if empty) }
+    FormFieldInfo:
+      type: object
+      properties:
+        type: { type: string }
+        name: { type: [string, 'null'] }
+        label: { type: [string, 'null'] }
+        required: { type: boolean }
+        placeholder: { type: [string, 'null'] }
+        value: { type: [string, 'null'] }
+        sensitive: { type: boolean }
+        valid: { type: boolean }
+        validationMessage: { type: [string, 'null'] }
+    ElementDetails:
+      type: object
+      properties:
+        reference: { type: string }
+        tag: { type: string }
+        role: { type: [string, 'null'] }
+        name: { type: [string, 'null'] }
+        text: { type: [string, 'null'] }
+        visible: { type: boolean }
+        enabled: { type: boolean }
+        editable: { type: boolean }
+        checked: { type: [boolean, 'null'] }
+        attributes: { type: object, additionalProperties: { type: string } }
+        computedStyles: { type: object, additionalProperties: { type: string } }
+        bounds: { $ref: '#/components/schemas/Bounds' }
+        formField: { $ref: '#/components/schemas/FormFieldInfo' }
+        ancestors: { type: array, items: { type: string } }
+        childCount: { type: integer }
+    AccessibilityReport:
+      type: object
+      properties:
+        tabId: { type: string }
+        url: { type: string }
+        ariaSnapshot: { type: string }
+        issues:
+          type: array
+          items:
+            type: object
+            properties:
+              rule: { type: string }
+              severity: { type: string }
+              message: { type: string }
+              reference: { type: string }
+    SourceLocation:
+      type: object
+      properties:
+        url: { type: [string, 'null'] }
+        file: { type: [string, 'null'] }
+        line: { type: [integer, 'null'] }
+        column: { type: [integer, 'null'] }
+    StackFrame:
+      type: object
+      properties:
+        function: { type: [string, 'null'] }
+        location: { $ref: '#/components/schemas/SourceLocation' }
+        original: { $ref: '#/components/schemas/SourceLocation' }
+    ConsoleLevel:
+      type: string
+      enum: [DEBUG, INFO, WARNING, ERROR]
+    ConsoleEntry:
+      type: object
+      properties:
+        seq: { type: integer, format: int64 }
+        eventId: { type: string }
+        sessionId: { type: string }
+        tabId: { type: string }
+        timestamp: { type: string, format: date-time }
+        level: { $ref: '#/components/schemas/ConsoleLevel' }
+        kind: { type: string, enum: [CONSOLE, PAGE_ERROR, UNHANDLED_REJECTION] }
+        message: { type: string }
+        source: { $ref: '#/components/schemas/SourceLocation' }
+        originalSource: { $ref: '#/components/schemas/SourceLocation' }
+        stack: { type: array, items: { $ref: '#/components/schemas/StackFrame' } }
+    ConsolePage:
+      type: object
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/ConsoleEntry' } }
+        lastSeq: { type: integer, format: int64 }
+        hasMore: { type: boolean }
+        dropped: { type: integer, format: int64, description: Entries evicted from the ring buffer so far }
+    NetworkEntry:
+      type: object
+      properties:
+        seq: { type: integer, format: int64 }
+        requestId: { type: string }
+        sessionId: { type: string }
+        tabId: { type: [string, 'null'] }
+        method: { type: string }
+        url: { type: string }
+        resourceType: { type: string }
+        state: { type: string, enum: [PENDING, COMPLETED, FAILED] }
+        status: { type: [integer, 'null'] }
+        statusText: { type: [string, 'null'] }
+        mimeType: { type: [string, 'null'] }
+        startedAt: { type: string, format: date-time }
+        durationMs: { type: [number, 'null'] }
+        failureText: { type: [string, 'null'] }
+        redirectedFrom: { type: [string, 'null'] }
+        corsError: { type: boolean }
+        webSocket: { type: boolean }
+        requestHeaders: { type: object, additionalProperties: { type: string } }
+        responseHeaders: { type: object, additionalProperties: { type: string } }
+        requestBody: { type: [string, 'null'] }
+        responseBody: { type: [string, 'null'] }
+    NetworkPage:
+      type: object
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/NetworkEntry' } }
+        lastSeq: { type: integer, format: int64 }
+        hasMore: { type: boolean }
+        dropped: { type: integer, format: int64 }
+    ScreenshotRequest:
+      type: object
+      properties:
+        tabId: { type: string }
+        name: { type: string, pattern: '^[A-Za-z0-9 ._-]{1,100}$' }
+        fullPage: { type: boolean }
+        locator: { $ref: '#/components/schemas/Locator' }
+        format: { type: string, enum: [PNG, JPEG] }
+        quality: { type: integer, minimum: 1, maximum: 100 }
+        viewportPreset: { $ref: '#/components/schemas/ViewportPreset' }
+        maskSensitive: { type: boolean, default: true, description: Mask password and other sensitive inputs }
+        inline: { type: boolean, description: Include base64 image data in the response }
+    ScreenshotInfo:
+      type: object
+      properties:
+        screenshotId: { type: string }
+        sessionId: { type: string }
+        name: { type: [string, 'null'] }
+        format: { type: string }
+        width: { type: integer }
+        height: { type: integer }
+        sizeBytes: { type: integer }
+        createdAt: { type: string, format: date-time }
+        pageUrl: { type: [string, 'null'] }
+        imageUrl: { type: string }
+        base64: { type: [string, 'null'] }
+    CompareRequest:
+      type: object
+      required: [candidateScreenshotId]
+      properties:
+        candidateScreenshotId: { type: string }
+        baselineScreenshotId: { type: string }
+        baselineName: { type: string }
+        pixelThreshold: { type: number, minimum: 0, maximum: 1, default: 0.1, description: Per-pixel colour distance tolerance }
+        maxDiffRatio: { type: number, minimum: 0, maximum: 1, default: 0.001 }
+    CompareResult:
+      type: object
+      properties:
+        match: { type: boolean }
+        diffPixels: { type: integer }
+        totalPixels: { type: integer }
+        diffRatio: { type: number }
+        sizeMismatch: { type: boolean }
+        diffScreenshotId: { type: [string, 'null'] }
+        message: { type: string }
+    BaselineRequest:
+      type: object
+      required: [name, screenshotId]
+      properties:
+        name: { type: string, pattern: '^[A-Za-z0-9._-]{1,100}$' }
+        screenshotId: { type: string }
+    BaselineInfo:
+      type: object
+      properties:
+        name: { type: string }
+        width: { type: integer }
+        height: { type: integer }
+        createdAt: { type: string, format: date-time }
+    ScenarioStep:
+      type: object
+      required: [action]
+      properties:
+        action:
+          type: string
+          enum: [navigate, click, doubleClick, hover, fill, type, press, select, check, uncheck, scroll, wait,
+                 screenshot, assertVisible, assertHidden, assertText, assertUrl, assertTitle,
+                 assertNoConsoleErrors, assertNetworkStatus, assertScreenshot]
+        description: { type: string }
+        path: { type: string }
+        url: { type: string }
+        locator: { $ref: '#/components/schemas/Locator' }
+        text: { type: string }
+        value: { type: string }
+        values: { type: array, items: { type: string } }
+        key: { type: string }
+        name: { type: string }
+        urlPattern: { type: string }
+        status: { type: integer }
+        baseline: { type: string }
+        maxDiffRatio: { type: number }
+        timeoutMs: { type: integer }
+    Scenario:
+      type: object
+      required: [name, steps]
+      properties:
+        name: { type: string }
+        baseUrl: { type: string }
+        variables: { type: object, additionalProperties: { type: string } }
+        fixtures: { type: object, additionalProperties: { type: object, additionalProperties: { type: string } }, description: 'Named variable sets; select with fixture' }
+        fixture: { type: string }
+        defaultTimeoutMs: { type: integer }
+        screenshotOnFailure: { type: boolean, default: true }
+        steps: { type: array, items: { $ref: '#/components/schemas/ScenarioStep' } }
+    StepResult:
+      type: object
+      properties:
+        index: { type: integer }
+        action: { type: string }
+        description: { type: string }
+        success: { type: boolean }
+        durationMs: { type: integer }
+        message: { type: [string, 'null'] }
+        screenshotId: { type: [string, 'null'] }
+    ScenarioReport:
+      type: object
+      properties:
+        name: { type: string }
+        sessionId: { type: string }
+        success: { type: boolean }
+        startedAt: { type: string, format: date-time }
+        durationMs: { type: integer }
+        passed: { type: integer }
+        failed: { type: integer }
+        skipped: { type: integer }
+        steps: { type: array, items: { $ref: '#/components/schemas/StepResult' } }
+        consoleErrors: { type: array, items: { type: string } }
+        failedRequests: { type: array, items: { type: string } }
+    ApprovalKind:
+      type: string
+      enum: [ORIGIN, EVALUATE, SENSITIVE_ACTIONS, FILE_TRANSFER]
+    ApprovalRequest:
+      type: object
+      required: [kind]
+      properties:
+        kind: { $ref: '#/components/schemas/ApprovalKind' }
+        value: { type: string, description: 'Origin for ORIGIN approvals, e.g. https://staging.example.com' }
+        reason: { type: string }
+    ApprovalInfo:
+      type: object
+      properties:
+        kind: { $ref: '#/components/schemas/ApprovalKind' }
+        value: { type: [string, 'null'] }
+        grantedAt: { type: string, format: date-time }
+        grantedBy: { type: string }
